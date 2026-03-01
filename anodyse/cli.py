@@ -16,11 +16,21 @@ from .renderer import render_index, render_playbook, render_role
 
 
 def _read_source_file(path: Path) -> str:
-    """Read source file content as text."""
+    """Read source file content as text.
+
+    Args:
+        path: Path to the file
+
+    Returns:
+        File content as string
+
+    Raises:
+        ParseError: If file cannot be read
+    """
     try:
         return path.read_text(encoding="utf-8")
-    except Exception:
-        return ""
+    except Exception as exc:
+        raise ParseError(f"Failed to read source file {path}: {exc}") from exc
 
 
 @click.command()

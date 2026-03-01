@@ -34,8 +34,8 @@ Anodyse reads structured comments from playbook and role YAML files:
 ## Tech Stack
 
 - Language: Python 3.11+
-- CLI framework: Click or Typer
-- YAML parsing: PyYAML or ruamel.yaml
+- CLI framework: Click
+- YAML parsing: ruamel.yaml
 - Templating: Jinja2
 - Output format: Markdown (with optional Mermaid diagrams)
 - Packaging: pip-installable, with a pyproject.toml

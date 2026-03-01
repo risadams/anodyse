@@ -35,6 +35,12 @@ def extract(
     Emits:
         AnnotationWarning when mandatory annotations are missing
     """
+    # Reset repeatable fields to avoid accumulation on repeated calls
+    data.params = []
+    data.warnings = []
+    data.examples = []
+    data.doc_tags = []
+
     # Extract all annotation lines
     annotations = _parse_annotations(source_text)
 

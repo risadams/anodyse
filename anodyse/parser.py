@@ -8,6 +8,31 @@ from ruamel.yaml import YAML
 from .exceptions import ParseError
 from .models import PlaybookData, RoleData, TaskData
 
+# Ansible task meta keys that are not actual modules
+_TASK_META_KEYS = {
+    "name",
+    "when",
+    "tags",
+    "loop",
+    "with_items",
+    "block",
+    "rescue",
+    "always",
+    "register",
+    "failed_when",
+    "changed_when",
+    "async",
+    "poll",
+    "throttle",
+    "vars",
+    "environment",
+    "connection",
+    "remote_user",
+    "become",
+    "become_user",
+    "no_log",
+}
+
 
 def detect_type(path: str) -> Literal["playbook", "role", "unknown"]:
     """Detect whether a path is a playbook file, role directory, or unknown.
@@ -233,39 +258,12 @@ def _parse_tasks(tasks_content: Any) -> list[TaskData]:
 
         task_name = task_dict.get("name", "Unnamed task")
 
-        # Find the module (typically all keys except meta keys like 'name', 'when', 'tags', etc.)
+        # Find the module (typically all keys except meta keys)
         module = None
         module_args = {}
-        meta_keys = {
-            "name",
-            "when",
-            "tags",
-            "loop",
-            "with_items",
-            "block",
-            "rescue",
-            "always",
-            "register",
-            "failed_when",
-            "changed_when",
-            "ignore_errors",
-            "vars",
-            "notify",
-            "until",
-            "retries",
-            "delay",
-            "throttle",
-            "handlers",
-            "include",
-            "import_tasks",
-            "include_role",
-            "import_role",
-            "async",
-            "poll",
-        }
 
         for key, value in task_dict.items():
-            if key not in meta_keys:
+            if key not in _TASK_META_KEYS:
                 module = key
                 module_args = value if isinstance(value, dict) else {}
                 break

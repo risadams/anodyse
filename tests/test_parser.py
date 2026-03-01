@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
+from ruamel.yaml import YAML
 
 from anodyse.exceptions import ParseError
 from anodyse.models import PlaybookData, RoleData, TaskData
@@ -149,6 +149,7 @@ class TestParserEdgeCases:
         """Test parsing playbook with variable definitions."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
             fname = f.name
+            yaml = YAML()
             with open(fname, "w") as fw:
                 yaml.dump(
                     {
@@ -170,6 +171,7 @@ class TestParserEdgeCases:
         """Test parsing playbook with handlers."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
             fname = f.name
+            yaml = YAML()
             with open(fname, "w") as fw:
                 yaml.dump(
                     {
