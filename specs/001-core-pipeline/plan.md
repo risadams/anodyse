@@ -140,7 +140,8 @@ tests/
     ├── role_sample/
     │   ├── tasks/main.yml
     │   ├── defaults/main.yml
-    │   └── meta/main.yml
+    │   ├── meta/main.yml
+    │   └── vars/main.yml
     └── manifest_sample.yml  # .anodyse.yml example
 
 pyproject.toml           # Dependencies + ruff config
