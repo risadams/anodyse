@@ -112,15 +112,15 @@ anodyse samples/ --output docs/samples/ --verbose
 cd samples/web-server
 anodyse deploy-nginx.yml -o docs/
 
-# Test with custom parameters
-anodyse deploy-nginx.yml -o docs/ -e "site_name=example.com"
+# Test with diagrams and verbose output
+anodyse deploy-nginx.yml -o docs/ --graph --verbose
 ```
 
 ### Run Tests Against Samples
 
 ```bash
-# Use samples in pytest
-pytest tests/ -v --fixtures=samples/
+# Run test suite (includes CLI/integration coverage)
+pytest tests/ -v
 ```
 
 ## Annotation Examples

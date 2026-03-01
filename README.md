@@ -40,6 +40,79 @@ Anodyse reads structured comments from playbook and role YAML files:
 - Output format: Markdown (with optional Mermaid diagrams)
 - Packaging: pip-installable, with a pyproject.toml
 
+## Build and Install
+
+### Prerequisites
+
+- Python 3.11+
+- pip
+
+### Install for local development
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip install -e .[dev]
+```
+
+### Run tests and lint
+
+```bash
+pytest
+ruff check .
+```
+
+### Build distributable packages
+
+```bash
+python -m pip install build
+python -m build
+```
+
+Build artifacts are created in `dist/` (`.whl` and `.tar.gz`).
+
+### Install from built wheel
+
+```bash
+python -m pip install dist/anodyse-0.1.0-py3-none-any.whl
+```
+
+## Quickstart with Sample Files
+
+Use the sample playbooks in `samples/` to test the full parse → extract → render flow.
+
+### 1) Install and verify CLI
+
+```bash
+python -m pip install -e .
+anodyse --help
+```
+
+### 2) Generate docs from one sample playbook
+
+```bash
+anodyse samples/web-server/deploy-nginx.yml --output docs/samples --verbose
+```
+
+### 3) Generate docs from all sample folders
+
+```bash
+anodyse samples/ --output docs/samples --graph --verbose
+```
+
+### 4) Check generated output
+
+Expected output files include:
+
+- `docs/samples/index.md`
+- One `.md` page per discovered sample playbook/role
+
+### Notes
+
+- `--graph` adds Mermaid flow diagrams.
+- Exit code `0` = success, `1` = parse/error failure, `2` = docs generated with warnings.
+- To avoid `.bak` files on overwrite, add `--no-backup`.
+
 ## Integration Points
 
 - GitHub Actions: Anodyse should be triggerable as a workflow step
