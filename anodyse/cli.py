@@ -3,14 +3,13 @@
 import sys
 import warnings
 from pathlib import Path
-from typing import cast
 
 import click
 
 from .discovery import discover
 from .exceptions import AnnotationWarning, ManifestError, ParseError
 from .extractor import extract
-from .models import IndexEntry, PlaybookData, RoleData
+from .models import IndexEntry, PlaybookData
 from .output import write_output
 from .parser import detect_type, parse_playbook, parse_role
 from .renderer import render_index, render_playbook, render_role
@@ -26,12 +25,45 @@ def _read_source_file(path: Path) -> str:
 
 @click.command()
 @click.argument("target", type=click.Path(exists=True))
-@click.option("--output", "-o", default="./docs", type=click.Path(), help="Output directory for generated docs")
-@click.option("--graph", is_flag=True, default=False, help="Include Mermaid flowchart diagrams")
-@click.option("--no-backup", is_flag=True, default=False, help="Skip creating .bak files before overwrite")
-@click.option("--config", type=click.Path(exists=True), default=None, help="Path to .anodyse.yml manifest")
-@click.option("--verbose", "-v", is_flag=True, default=False, help="Print detailed processing information")
-@click.option("--format", "fmt", type=click.Choice(["markdown"]), default="markdown", help="Output format (markdown only)")
+@click.option(
+    "--output",
+    "-o",
+    default="./docs",
+    type=click.Path(),
+    help="Output directory for generated docs",
+)
+@click.option(
+    "--graph",
+    is_flag=True,
+    default=False,
+    help="Include Mermaid flowchart diagrams",
+)
+@click.option(
+    "--no-backup",
+    is_flag=True,
+    default=False,
+    help="Skip creating .bak files before overwrite",
+)
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to .anodyse.yml manifest",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    default=False,
+    help="Print detailed processing information",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["markdown"]),
+    default="markdown",
+    help="Output format (markdown only)",
+)
 def main(
     target: str,
     output: str,
@@ -43,7 +75,8 @@ def main(
 ) -> None:
     """Anodyse — Generate user-facing docs from Ansible playbooks and roles.
 
-    TARGET can be a playbook file (.yml), role directory, or directory containing multiple playbooks/roles.
+    TARGET can be a playbook file (.yml), role directory, or directory
+    containing multiple playbooks/roles.
     """
     exit_code = 0
     has_warnings = False
@@ -148,7 +181,7 @@ def main(
             write_output(index_content, str(index_path), no_backup=no_backup)
 
             if verbose:
-                click.echo(f"✓ Generated index: index.md")
+                click.echo("✓ Generated index: index.md")
 
     except ManifestError as e:
         click.echo(f"✗ Manifest Error: {e}", err=True)

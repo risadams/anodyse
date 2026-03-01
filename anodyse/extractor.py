@@ -66,10 +66,12 @@ def extract(
             # Format: <name>: <description>
             if ":" in param_str:
                 name, description = param_str.split(":", 1)
-                data.params.append({
-                    "name": name.strip(),
-                    "description": description.strip(),
-                })
+                data.params.append(
+                    {
+                        "name": name.strip(),
+                        "description": description.strip(),
+                    }
+                )
 
     # Process @warning (repeatable)
     if "warning" in annotations:
@@ -98,9 +100,6 @@ def _parse_annotations(source_text: str) -> dict[str, list[str]]:
         Dictionary mapping tag names to lists of values
     """
     annotations: dict[str, list[str]] = {}
-
-    # Pattern to match: # @tag value (anywhere in the line after #)
-    pattern = r"#\s*@(\w+)\s+(.+?)(?=\s*(?:#\s*@|$))"
 
     # Process each line to extract annotations
     lines = source_text.split("\n")

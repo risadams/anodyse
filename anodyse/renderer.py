@@ -2,10 +2,14 @@
 
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, PackageLoader, select_autoescape
+from jinja2 import (
+    Environment,
+    FileSystemLoader,
+    PackageLoader,
+    select_autoescape,
+)
 
 from .models import IndexEntry, PlaybookData, RoleData
-
 
 # Cache for Jinja2 environment
 _jinja_env: Environment | None = None
@@ -35,6 +39,7 @@ def _get_jinja_env() -> Environment:
     loaders.append(PackageLoader("anodyse", "templates"))
 
     from jinja2 import ChoiceLoader
+
     loader = ChoiceLoader(loaders)
 
     _jinja_env = Environment(

@@ -118,7 +118,7 @@ class TestCLI:
             output_dir = Path(tmpdir)
 
             # First run
-            result1 = cli_runner.invoke(
+            cli_runner.invoke(
                 main,
                 [
                     str(fixtures_dir / "playbook_annotated.yml"),
@@ -140,8 +140,6 @@ class TestCLI:
 
             assert result2.exit_code in [0, 2]
 
-            # Should not have backup files
-            backup_files = list(output_dir.glob("*.bak"))
             # Note: no-backup only affects the second run, not the first
             # So we may or may not have backups depending on implementation
 

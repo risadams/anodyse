@@ -102,9 +102,6 @@ def parse_playbook(path: str) -> PlaybookData:
 
     # Extract data
     hosts = play.get("hosts", "")
-    title = play.get("name", file_path.stem)
-    tags = play.get("tags", []) or []
-    vars_dict = play.get("vars", {}) or {}
 
     # Parse task lists
     pre_tasks = _parse_tasks(play.get("pre_tasks", []) or [])
@@ -239,10 +236,33 @@ def _parse_tasks(tasks_content: Any) -> list[TaskData]:
         # Find the module (typically all keys except meta keys like 'name', 'when', 'tags', etc.)
         module = None
         module_args = {}
-        meta_keys = {"name", "when", "tags", "loop", "with_items", "block", "rescue", "always",
-                     "register", "failed_when", "changed_when", "ignore_errors", "vars", "notify",
-                     "until", "retries", "delay", "throttle", "handlers", "include", "import_tasks",
-                     "include_role", "import_role", "async", "poll"}
+        meta_keys = {
+            "name",
+            "when",
+            "tags",
+            "loop",
+            "with_items",
+            "block",
+            "rescue",
+            "always",
+            "register",
+            "failed_when",
+            "changed_when",
+            "ignore_errors",
+            "vars",
+            "notify",
+            "until",
+            "retries",
+            "delay",
+            "throttle",
+            "handlers",
+            "include",
+            "import_tasks",
+            "include_role",
+            "import_role",
+            "async",
+            "poll",
+        }
 
         for key, value in task_dict.items():
             if key not in meta_keys:

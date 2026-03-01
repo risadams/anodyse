@@ -63,7 +63,10 @@ class PlaybookData:
     """Role names referenced in 'roles:' section (not followed in MVP)."""
 
     params: list[dict[str, str]] = field(default_factory=list)
-    """Parameters from @param annotations. Format: [{"name": "var_name", "description": "var description"}, ...]"""
+    """Parameters from @param annotations.
+
+    Format: [{"name": "var_name", "description": "var description"}, ...]
+    """
 
     warnings: list[str] = field(default_factory=list)
     """Warning messages from @warning annotations."""
@@ -98,7 +101,10 @@ class RoleData:
     """Role variables from vars/main.yml (full dict for reference)."""
 
     params: list[dict[str, str]] = field(default_factory=list)
-    """Parameters with @param annotations ONLY. Format: [{"name": "var_name", "description": "var description"}, ...]"""
+    """Parameters with @param annotations ONLY.
+
+    Format: [{"name": "var_name", "description": "var description"}, ...]
+    """
 
     warnings: list[str] = field(default_factory=list)
     """Warning messages from @warning annotations."""

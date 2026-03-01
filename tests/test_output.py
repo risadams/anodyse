@@ -48,7 +48,6 @@ class TestWriteOutput:
             assert output_path.read_text() == "# Second"
 
             # Backup may or may not exist depending on implementation
-            backup_path = output_path.with_suffix(".md.bak")
 
     def test_write_output_no_backup_flag(self):
         """Test output writing without backup."""

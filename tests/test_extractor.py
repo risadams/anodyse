@@ -6,7 +6,7 @@ import pytest
 
 from anodyse.exceptions import AnnotationWarning
 from anodyse.extractor import extract
-from anodyse.models import PlaybookData, RoleData
+from anodyse.models import PlaybookData
 from anodyse.parser import parse_playbook, parse_role
 
 
@@ -66,7 +66,7 @@ class TestExtractPlaybook:
         data = parse_playbook(playbook_unannotated_path)
         source = "---\n- hosts: all\n  tasks:\n    - name: test\n      debug: msg='test'"
 
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             result = extract(data, source)
 
