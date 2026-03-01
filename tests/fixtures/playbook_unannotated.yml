@@ -1,0 +1,13 @@
+---
+- hosts: all
+  vars:
+    my_var: value1
+
+  tasks:
+    - name: First task
+      debug:
+        msg: "Running first task"
+
+    - name: Second task
+      shell: |
+        echo "This is a shell command"

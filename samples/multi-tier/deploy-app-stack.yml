@@ -1,0 +1,256 @@
+# @title Multi-Tier Application Stack Deployment
+# @description Deploy a complete 3-tier application stack with load balancer, app servers, and database
+# @param app_version Application version to deploy
+# @param environment Deployment environment (dev/staging/prod)
+# @param lb_algorithm Load balancer algorithm (roundrobin/leastconn)
+# @param app_replicas Number of application server instances
+# @param db_backup_enabled Enable automated database backups
+# @warning This is a complex multi-host deployment
+# @warning Ensure all host groups are defined in inventory
+# @example ansible-playbook deploy-app-stack.yml -e "environment=prod app_version=1.2.3"
+# @tag multi-tier
+# @tag loadbalancer
+# @tag high-availability
+
+---
+- name: Deploy Load Balancer
+  hosts: loadbalancers
+  become: true
+  
+  vars:
+    lb_algorithm: roundrobin
+    health_check_interval: 5
+    
+  tasks:
+    # @title Install HAProxy
+    # @description Install HAProxy load balancer
+    - name: Install HAProxy
+      apt:
+        name: haproxy
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      
+    # @title Configure HAProxy
+    # @description Deploy HAProxy configuration with backend servers
+    # @param lb_algorithm Load balancing algorithm
+    # @param health_check_interval Interval for health checks in seconds
+    - name: Configure HAProxy
+      template:
+        src: haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart haproxy
+      
+    # @title Enable HAProxy service
+    # @description Start and enable HAProxy
+    - name: Start HAProxy
+      service:
+        name: haproxy
+        state: started
+        enabled: yes
+        
+    # @title Configure firewall for load balancer
+    # @description Open HTTP and HTTPS ports
+    - name: Allow HTTP/HTTPS traffic
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - 80
+        - 443
+
+- name: Deploy Application Servers
+  hosts: appservers
+  become: true
+  
+  vars:
+    app_version: latest
+    app_name: myapp
+    app_port: 8080
+    app_user: appuser
+    environment: production
+    node_env: production
+    
+  tasks:
+    # @title Create application user
+    # @description Create dedicated system user for running the application
+    # @param app_user Username for the application service
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        system: yes
+        shell: /bin/false
+        home: "/opt/{{ app_name }}"
+        create_home: yes
+        
+    # @title Install runtime dependencies
+    # @description Install Node.js and required system packages
+    - name: Install Node.js
+      apt:
+        name:
+          - nodejs
+          - npm
+          - git
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      
+    # @title Deploy application code
+    # @description Clone or update application repository
+    # @param app_version Git tag or branch to deploy
+    - name: Deploy application
+      git:
+        repo: "https://github.com/example/{{ app_name }}.git"
+        dest: "/opt/{{ app_name }}/app"
+        version: "{{ app_version }}"
+        force: yes
+      become_user: "{{ app_user }}"
+      notify: Restart application
+      
+    # @title Install application dependencies
+    # @description Run npm install for Node.js dependencies
+    - name: Install npm dependencies
+      npm:
+        path: "/opt/{{ app_name }}/app"
+        state: present
+        production: yes
+      become_user: "{{ app_user }}"
+      
+    # @title Configure application environment
+    # @description Deploy environment-specific configuration
+    # @param environment Target environment name
+    # @param node_env Node.js environment setting
+    - name: Deploy environment configuration
+      template:
+        src: app-config.env.j2
+        dest: "/opt/{{ app_name }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      notify: Restart application
+      
+    # @title Create systemd service
+    # @description Configure systemd unit for application management
+    - name: Create systemd service
+      template:
+        src: app.service.j2
+        dest: "/etc/systemd/system/{{ app_name }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+      
+    # @title Start application service
+    # @description Ensure application is running and enabled at boot
+    - name: Start application
+      service:
+        name: "{{ app_name }}"
+        state: started
+        enabled: yes
+        
+    # @title Configure application firewall
+    # @description Open application port for load balancer
+    # @param app_port Application listening port
+    - name: Allow application port
+      ufw:
+        rule: allow
+        port: "{{ app_port }}"
+        proto: tcp
+        from_ip: "{{ groups['loadbalancers'] | first }}"
+
+- name: Configure Database Server
+  hosts: dbservers
+  become: true
+  
+  vars:
+    db_name: appdb
+    db_user: appuser
+    db_backup_enabled: true
+    backup_retention_days: 7
+    
+  tasks:
+    # @title Install PostgreSQL
+    # @description Install PostgreSQL database server
+    - name: Install PostgreSQL
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+          - python3-psycopg2
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      
+    # @title Create application database
+    # @description Create database for the application
+    # @param db_name Name of the database
+    - name: Create database
+      postgresql_db:
+        name: "{{ db_name }}"
+        encoding: UTF-8
+        state: present
+      become_user: postgres
+      
+    # @title Create database user
+    # @description Create database user with appropriate privileges
+    # @param db_user Database username
+    # @warning Password should be provided via vault
+    - name: Create database user
+      postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        db: "{{ db_name }}"
+        priv: ALL
+        state: present
+      become_user: postgres
+      
+    # @title Configure database backups
+    # @description Set up automated daily database backups
+    # @param db_backup_enabled Whether to enable backups
+    # @param backup_retention_days Number of days to retain backups
+    - name: Configure backup cron job
+      cron:
+        name: "Database backup"
+        minute: "0"
+        hour: "2"
+        job: "pg_dump {{ db_name }} | gzip > /var/backups/{{ db_name }}-$(date +\\%Y\\%m\\%d).sql.gz"
+        user: postgres
+      when: db_backup_enabled | bool
+      
+    # @title Clean old backups
+    # @description Remove backups older than retention period
+    - name: Configure backup cleanup
+      cron:
+        name: "Cleanup old backups"
+        minute: "30"
+        hour: "2"
+        job: "find /var/backups -name '{{ db_name }}-*.sql.gz' -mtime +{{ backup_retention_days }} -delete"
+        user: postgres
+      when: db_backup_enabled | bool
+      
+    # @title Start PostgreSQL service
+    # @description Ensure database service is running
+    - name: Start PostgreSQL
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart haproxy
+      service:
+        name: haproxy
+        state: restarted
+        
+    - name: Restart application
+      service:
+        name: "{{ app_name }}"
+        state: restarted
+        
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

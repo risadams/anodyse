@@ -1,0 +1,18 @@
+# @title Webserver Configuration Role
+# @description Configures nginx web server with SSL support
+# @param nginx_version: Version of nginx to install
+# @warning Ensure firewall rules are configured before applying this role
+# @tag webserver
+# @tag nginx
+
+---
+- name: Install nginx
+  package:
+    name: nginx
+    state: present
+
+- name: Enable nginx service
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
