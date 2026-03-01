@@ -1,0 +1,108 @@
+# @title NGINX Web Server Deployment
+# @description Deploy and configure NGINX web server with SSL/TLS support and custom site configuration
+# @param nginx_port Port number for HTTP traffic (default: 80)
+# @param nginx_ssl_port Port number for HTTPS traffic (default: 443)
+# @param site_name Domain name for the website
+# @param enable_ssl Whether to enable SSL/TLS encryption
+# @warning Ensure firewall rules allow traffic on specified ports
+# @warning SSL certificates must be provided separately
+# @example ansible-playbook deploy-nginx.yml -e "site_name=example.com enable_ssl=true"
+
+---
+- name: Deploy NGINX Web Server
+  hosts: webservers
+  become: true
+  
+  vars:
+    nginx_port: 80
+    nginx_ssl_port: 443
+    enable_ssl: false
+    site_name: localhost
+    document_root: /var/www/html
+    
+  tasks:
+    # @title Update package cache
+    # @description Ensure APT package cache is up-to-date before installation
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      
+    # @title Install NGINX package
+    # @description Install NGINX web server from distribution repositories
+    - name: Install nginx
+      package:
+        name: nginx
+        state: present
+        
+    # @title Create document root directory
+    # @description Ensure the web root directory exists with proper permissions
+    # @param document_root Base directory for serving web content
+    - name: Create document root
+      file:
+        path: "{{ document_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        
+    # @title Deploy site configuration
+    # @description Configure NGINX virtual host for the specified site
+    # @warning This will override any existing configuration for the same site
+    - name: Configure nginx site
+      template:
+        src: nginx-site.conf.j2
+        dest: "/etc/nginx/sites-available/{{ site_name }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload nginx
+      
+    # @title Enable site configuration
+    # @description Create symbolic link to enable the site configuration
+    - name: Enable nginx site
+      file:
+        src: "/etc/nginx/sites-available/{{ site_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ site_name }}"
+        state: link
+      notify: Reload nginx
+      
+    # @title Start and enable NGINX service
+    # @description Ensure NGINX is running and starts on boot
+    - name: Start nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+        
+    # @title Configure firewall for HTTP
+    # @description Open firewall port for HTTP traffic
+    # @param nginx_port HTTP port to open
+    - name: Allow HTTP traffic
+      ufw:
+        rule: allow
+        port: "{{ nginx_port }}"
+        proto: tcp
+      when: ansible_os_family == "Debian"
+      
+    # @title Configure firewall for HTTPS
+    # @description Open firewall port for HTTPS traffic
+    # @param nginx_ssl_port HTTPS port to open
+    # @warning Only applies when enable_ssl is true
+    - name: Allow HTTPS traffic
+      ufw:
+        rule: allow
+        port: "{{ nginx_ssl_port }}"
+        proto: tcp
+      when: 
+        - ansible_os_family == "Debian"
+        - enable_ssl | bool
+        
+  handlers:
+    # @title Reload NGINX configuration
+    # @description Gracefully reload NGINX to apply configuration changes
+    - name: Reload nginx
+      service:
+        name: nginx
+        state: reloaded

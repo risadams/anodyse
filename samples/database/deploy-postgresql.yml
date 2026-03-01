@@ -1,0 +1,139 @@
+# @title PostgreSQL Database Server Deployment
+# @description Install and configure PostgreSQL database server with security hardening
+# @param postgres_version PostgreSQL version to install (default: 14)
+# @param postgres_port Database server port (default: 5432)
+# @param db_name Name of the database to create
+# @param db_user Database user to create
+# @param db_password Password for the database user
+# @param allow_remote Enable remote connections (default: false)
+# @warning Remote access is disabled by default for security
+# @warning Ensure strong passwords are used in production
+# @example ansible-playbook deploy-postgresql.yml -e "db_name=myapp db_user=appuser db_password=securepass123"
+# @tag database
+# @tag postgresql
+# @tag security
+
+---
+- name: Deploy PostgreSQL Database Server
+  hosts: dbservers
+  become: true
+  
+  vars:
+    postgres_version: "14"
+    postgres_port: 5432
+    allow_remote: false
+    max_connections: 100
+    shared_buffers: "256MB"
+    
+  tasks:
+    # @title Add PostgreSQL APT repository
+    # @description Add official PostgreSQL repository for latest packages
+    - name: Add PostgreSQL APT repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+      when: ansible_os_family == "Debian"
+      
+    # @title Import PostgreSQL signing key
+    # @description Import GPG key for package verification
+    - name: Add PostgreSQL GPG key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+      when: ansible_os_family == "Debian"
+      
+    # @title Install PostgreSQL packages
+    # @description Install PostgreSQL server and client tools
+    # @param postgres_version Version of PostgreSQL to install
+    - name: Install PostgreSQL
+      apt:
+        name:
+          - "postgresql-{{ postgres_version }}"
+          - "postgresql-contrib-{{ postgres_version }}"
+          - python3-psycopg2
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      
+    # @title Configure PostgreSQL server
+    # @description Update PostgreSQL configuration with custom settings
+    # @param max_connections Maximum number of concurrent connections
+    # @param shared_buffers Amount of memory for shared buffers
+    - name: Configure PostgreSQL
+      lineinfile:
+        path: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^#?port\s*=', line: "port = {{ postgres_port }}" }
+        - { regexp: '^#?max_connections\s*=', line: "max_connections = {{ max_connections }}" }
+        - { regexp: '^#?shared_buffers\s*=', line: "shared_buffers = {{ shared_buffers }}" }
+      notify: Restart postgresql
+      
+    # @title Configure client authentication
+    # @description Update pg_hba.conf for client access control
+    # @warning Restricts connections to local Unix socket by default
+    - name: Configure pg_hba
+      template:
+        src: pg_hba.conf.j2
+        dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
+        owner: postgres
+        group: postgres
+        mode: '0640'
+      notify: Restart postgresql
+      
+    # @title Start and enable PostgreSQL
+    # @description Ensure PostgreSQL service is running and enabled at boot
+    - name: Start PostgreSQL service
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+        
+    # @title Create application database
+    # @description Create a new database for the application
+    # @param db_name Name of the database to create
+    - name: Create database
+      postgresql_db:
+        name: "{{ db_name }}"
+        state: present
+      become_user: postgres
+      when: db_name is defined
+      
+    # @title Create database user
+    # @description Create a new database user with authentication
+    # @param db_user Username for the database user
+    # @param db_password Password for the database user
+    # @warning Ensure db_password is stored securely (use Ansible Vault)
+    - name: Create database user
+      postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        db: "{{ db_name }}"
+        priv: ALL
+        state: present
+      become_user: postgres
+      when: 
+        - db_user is defined
+        - db_password is defined
+        - db_name is defined
+      
+    # @title Configure firewall
+    # @description Open PostgreSQL port in firewall if remote access enabled
+    # @warning Only opens port when allow_remote is true
+    - name: Configure firewall for PostgreSQL
+      ufw:
+        rule: allow
+        port: "{{ postgres_port }}"
+        proto: tcp
+      when: 
+        - ansible_os_family == "Debian"
+        - allow_remote | bool
+        
+  handlers:
+    # @title Restart PostgreSQL service
+    # @description Restart PostgreSQL to apply configuration changes
+    - name: Restart postgresql
+      service:
+        name: postgresql
+        state: restarted

@@ -1,0 +1,169 @@
+# @title Docker Application Deployment
+# @description Deploy a multi-container application using Docker Compose
+# @param app_name Name of the application
+# @param docker_network Network name for container communication
+# @param app_port External port to expose the application
+# @param enable_monitoring Deploy monitoring stack (Prometheus/Grafana)
+# @warning Requires Docker and Docker Compose to be installed
+# @warning Ensure sufficient disk space for container images
+# @example ansible-playbook deploy-containers.yml -e "app_name=webapp app_port=8080"
+# @tag docker
+# @tag containers
+# @tag microservices
+
+---
+- name: Deploy Docker Application
+  hosts: appservers
+  become: true
+  
+  vars:
+    app_name: myapp
+    docker_network: app_network
+    app_port: 8080
+    enable_monitoring: false
+    docker_compose_version: "2.24.0"
+    
+  tasks:
+    # @title Install Docker prerequisites
+    # @description Install required packages for Docker installation
+    - name: Install Docker prerequisites
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      
+    # @title Add Docker GPG key
+    # @description Import Docker's official GPG key for package verification
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_os_family == "Debian"
+      
+    # @title Add Docker repository
+    # @description Add Docker's official APT repository
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+      when: ansible_os_family == "Debian"
+      
+    # @title Install Docker Engine
+    # @description Install Docker CE and related tools
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      
+    # @title Start Docker service
+    # @description Ensure Docker daemon is running and enabled at boot
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+        
+    # @title Install Docker Compose
+    # @description Install Docker Compose standalone binary
+    # @param docker_compose_version Version of Docker Compose to install
+    - name: Install Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/v{{ docker_compose_version }}/docker-compose-linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+        
+    # @title Create application directory
+    # @description Create directory structure for Docker application
+    - name: Create application directory
+      file:
+        path: "/opt/{{ app_name }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+        
+    # @title Deploy Docker Compose file
+    # @description Deploy docker-compose.yml configuration
+    # @param app_name Application name for container naming
+    # @param docker_network Network name for inter-container communication
+    - name: Deploy docker-compose file
+      template:
+        src: docker-compose.yml.j2
+        dest: "/opt/{{ app_name }}/docker-compose.yml"
+        owner: root
+        group: root
+        mode: '0644'
+        
+    # @title Create Docker network
+    # @description Create isolated Docker network for application
+    # @param docker_network Name of the Docker network
+    - name: Create Docker network
+      docker_network:
+        name: "{{ docker_network }}"
+        state: present
+        
+    # @title Pull container images
+    # @description Pull required Docker images from registry
+    - name: Pull Docker images
+      shell: docker-compose pull
+      args:
+        chdir: "/opt/{{ app_name }}"
+      register: pull_result
+      changed_when: "'Pulling" in pull_result.stdout'
+      
+    # @title Start application containers
+    # @description Start all application containers via Docker Compose
+    # @warning This will restart containers if configuration has changed
+    - name: Start Docker containers
+      shell: docker-compose up -d
+      args:
+        chdir: "/opt/{{ app_name }}"
+      register: start_result
+      changed_when: "'Creating' in start_result.stdout or 'Starting' in start_result.stdout"
+      
+    # @title Configure firewall for application
+    # @description Open firewall port for application access
+    # @param app_port Port to expose for external access
+    - name: Allow application port
+      ufw:
+        rule: allow
+        port: "{{ app_port }}"
+        proto: tcp
+      when: ansible_os_family == "Debian"
+      
+    # @title Deploy monitoring stack
+    # @description Deploy Prometheus and Grafana for monitoring
+    # @warning Only deploys when enable_monitoring is true
+    - name: Deploy monitoring stack
+      docker_compose:
+        project_src: "/opt/{{ app_name }}/monitoring"
+        state: present
+      when: enable_monitoring | bool
+      
+    # @title Verify container status
+    # @description Check that all containers are running
+    - name: Verify containers are running
+      shell: docker-compose ps
+      args:
+        chdir: "/opt/{{ app_name }}"
+      register: container_status
+      changed_when: false
+      
+    # @title Display container status
+    # @description Show running container information
+    - name: Show container status
+      debug:
+        var: container_status.stdout_lines

@@ -1,0 +1,222 @@
+# @title System Security Hardening
+# @description Apply security hardening measures to Linux systems following CIS benchmarks
+# @param enable_firewall Enable and configure UFW firewall
+# @param disable_root_ssh Disable direct root SSH login
+# @param ssh_port Custom SSH port (default: 22)
+# @param allowed_ssh_users List of users allowed to SSH
+# @param enable_fail2ban Install and configure fail2ban
+# @warning This playbook will modify critical system security settings
+# @warning Test in non-production environment first
+# @warning Ensure you have alternative access before disabling root SSH
+# @example ansible-playbook harden-system.yml -e "ssh_port=2222 disable_root_ssh=true"
+# @tag security
+# @tag hardening
+# @tag compliance
+
+---
+- name: System Security Hardening
+  hosts: all
+  become: true
+  
+  vars:
+    enable_firewall: true
+    disable_root_ssh: true
+    ssh_port: 22
+    allowed_ssh_users: []
+    enable_fail2ban: true
+    password_max_age: 90
+    password_min_length: 12
+    
+  tasks:
+    # @title Update all packages
+    # @description Ensure all system packages are up-to-date
+    - name: Update all packages
+      apt:
+        upgrade: dist
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      
+    # @title Install security packages
+    # @description Install essential security tools
+    - name: Install security packages
+      apt:
+        name:
+          - ufw
+          - fail2ban
+          - aide
+          - auditd
+          - unattended-upgrades
+        state: present
+      when: ansible_os_family == "Debian"
+      
+    # @title Configure automatic security updates
+    # @description Enable automatic installation of security updates
+    - name: Configure unattended-upgrades
+      copy:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        content: |
+          Unattended-Upgrade::Allowed-Origins {
+              "${distro_id}:${distro_codename}-security";
+          };
+          Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+          Unattended-Upgrade::Remove-Unused-Dependencies "true";
+        owner: root
+        group: root
+        mode: '0644'
+        
+    # @title Harden SSH configuration
+    # @description Apply security best practices to SSH daemon
+    # @param ssh_port Port for SSH service
+    # @param disable_root_ssh Whether to disable root login
+    # @warning Changes require SSH service restart
+    - name: Harden SSH configuration
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^#?Port\s', line: "Port {{ ssh_port }}" }
+        - { regexp: '^#?PermitRootLogin\s', line: "PermitRootLogin {{ 'no' if disable_root_ssh else 'yes' }}" }
+        - { regexp: '^#?PasswordAuthentication\s', line: "PasswordAuthentication no" }
+        - { regexp: '^#?PubkeyAuthentication\s', line: "PubkeyAuthentication yes" }
+        - { regexp: '^#?PermitEmptyPasswords\s', line: "PermitEmptyPasswords no" }
+        - { regexp: '^#?X11Forwarding\s', line: "X11Forwarding no" }
+        - { regexp: '^#?MaxAuthTries\s', line: "MaxAuthTries 3" }
+        - { regexp: '^#?ClientAliveInterval\s', line: "ClientAliveInterval 300" }
+        - { regexp: '^#?ClientAliveCountMax\s', line: "ClientAliveCountMax 2" }
+      notify: Restart sshd
+      
+    # @title Restrict SSH access to specific users
+    # @description Limit SSH access to approved user accounts
+    # @param allowed_ssh_users List of allowed SSH users
+    # @warning Only users in this list can SSH to the system
+    - name: Restrict SSH to specific users
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?AllowUsers\s'
+        line: "AllowUsers {{ allowed_ssh_users | join(' ') }}"
+      when: allowed_ssh_users | length > 0
+      notify: Restart sshd
+      
+    # @title Configure UFW firewall
+    # @description Set up UFW with default deny policy
+    # @param enable_firewall Whether to enable the firewall
+    # @warning This will block all incoming traffic except explicitly allowed
+    - name: Configure UFW defaults
+      ufw:
+        direction: "{{ item.direction }}"
+        policy: "{{ item.policy }}"
+      loop:
+        - { direction: 'incoming', policy: 'deny' }
+        - { direction: 'outgoing', policy: 'allow' }
+      when: enable_firewall | bool
+      
+    # @title Allow SSH through firewall
+    # @description Permit SSH connections on configured port
+    # @param ssh_port SSH port to allow
+    - name: Allow SSH port
+      ufw:
+        rule: allow
+        port: "{{ ssh_port }}"
+        proto: tcp
+      when: enable_firewall | bool
+      
+    # @title Enable UFW firewall
+    # @description Activate the UFW firewall
+    - name: Enable UFW
+      ufw:
+        state: enabled
+      when: enable_firewall | bool
+      
+    # @title Configure fail2ban
+    # @description Set up fail2ban to block brute-force attempts
+    # @param enable_fail2ban Whether to configure fail2ban
+    - name: Configure fail2ban
+      copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [DEFAULT]
+          bantime = 3600
+          findtime = 600
+          maxretry = 3
+          
+          [sshd]
+          enabled = true
+          port = {{ ssh_port }}
+        owner: root
+        group: root
+        mode: '0644'
+      when: enable_fail2ban | bool
+      notify: Restart fail2ban
+      
+    # @title Set password policy
+    # @description Configure password aging and complexity requirements
+    # @param password_max_age Maximum password age in days
+    # @param password_min_length Minimum password length
+    - name: Configure password policy
+      lineinfile:
+        path: /etc/login.defs
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^PASS_MAX_DAYS', line: "PASS_MAX_DAYS {{ password_max_age }}" }
+        - { regexp: '^PASS_MIN_DAYS', line: "PASS_MIN_DAYS 7" }
+        - { regexp: '^PASS_MIN_LEN', line: "PASS_MIN_LEN {{ password_min_length }}" }
+        - { regexp: '^PASS_WARN_AGE', line: "PASS_WARN_AGE 7" }
+        
+    # @title Disable unused filesystems
+    # @description Prevent loading of unused filesystem kernel modules
+    - name: Disable unused filesystems
+      kernel_blacklist:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - cramfs
+        - freevxfs
+        - jffs2
+        - hfs
+        - hfsplus
+        - udf
+        
+    # @title Set kernel security parameters
+    # @description Configure sysctl security settings
+    - name: Configure kernel security parameters
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { name: 'net.ipv4.conf.all.accept_source_route', value: '0' }
+        - { name: 'net.ipv4.conf.default.accept_source_route', value: '0' }
+        - { name: 'net.ipv4.conf.all.accept_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.default.accept_redirects', value: '0' }
+        - { name: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
+        - { name: 'net.ipv4.icmp_ignore_bogus_error_responses', value: '1' }
+        - { name: 'net.ipv4.tcp_syncookies', value: '1' }
+        - { name: 'kernel.randomize_va_space', value: '2' }
+        
+    # @title Enable auditd service
+    # @description Start and enable system auditing
+    - name: Start auditd service
+      service:
+        name: auditd
+        state: started
+        enabled: yes
+        
+  handlers:
+    # @title Restart SSH daemon
+    # @description Restart SSH service to apply configuration changes
+    # @warning Active SSH sessions may be affected
+    - name: Restart sshd
+      service:
+        name: sshd
+        state: restarted
+        
+    # @title Restart fail2ban service
+    # @description Restart fail2ban to apply new configuration
+    - name: Restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted
