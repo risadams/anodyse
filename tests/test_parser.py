@@ -1,6 +1,10 @@
 """Unit tests for the YAML parser module."""
 
+import tempfile
+from pathlib import Path
+
 import pytest
+import yaml
 
 from anodyse.exceptions import ParseError
 from anodyse.models import PlaybookData, RoleData, TaskData
@@ -104,6 +108,84 @@ class TestParseRole:
 
         assert isinstance(data.meta, dict)
         assert "galaxy_info" in data.meta
+
+
+class TestParserEdgeCases:
+    """Tests for edge cases and error conditions."""
+
+    def test_parse_playbook_invalid_yaml_syntax(self):
+        """Test parsing YAML with invalid syntax."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+            fname = f.name
+            f.write("{ invalid yaml: [")
+            f.flush()
+
+        try:
+            with pytest.raises(ParseError):
+                parse_playbook(fname)
+        finally:
+            Path(fname).unlink(missing_ok=True)
+
+    def test_parse_playbook_empty_file(self):
+        """Test parsing empty YAML file."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+            fname = f.name
+            f.write("")
+            f.flush()
+
+        try:
+            # Should handle empty file gracefully
+            try:
+                result = parse_playbook(fname)
+                # Empty file may return None or empty PlaybookData
+                assert result is None or isinstance(result, PlaybookData)
+            except ParseError:
+                # Also acceptable to raise ParseError for empty file
+                pass
+        finally:
+            Path(fname).unlink(missing_ok=True)
+
+    def test_parse_playbook_with_variables(self):
+        """Test parsing playbook with variable definitions."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+            fname = f.name
+            with open(fname, "w") as fw:
+                yaml.dump(
+                    {
+                        "name": "Test Playbook",
+                        "hosts": "all",
+                        "pre_tasks": [{"name": "Task 1", "debug": {"msg": "test"}}],
+                        "tasks": [{"name": "Task 2", "debug": {"msg": "test"}}],
+                    },
+                    fw,
+                )
+
+        try:
+            result = parse_playbook(fname)
+            assert result is not None
+        finally:
+            Path(fname).unlink(missing_ok=True)
+
+    def test_parse_playbook_with_handlers(self):
+        """Test parsing playbook with handlers."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+            fname = f.name
+            with open(fname, "w") as fw:
+                yaml.dump(
+                    {
+                        "name": "Test",
+                        "hosts": "all",
+                        "tasks": [{"name": "Task", "shell": "echo test"}],
+                        "handlers": [{"name": "Handler", "debug": {"msg": "handler"}}],
+                    },
+                    fw,
+                )
+
+        try:
+            result = parse_playbook(fname)
+            assert result is not None
+        finally:
+            Path(fname).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

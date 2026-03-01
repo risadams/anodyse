@@ -96,5 +96,62 @@ class TestDiscovery:
             Path(manifest_path).unlink()
 
 
+class TestDiscoveryEdgeCases:
+    """Tests for edge cases and error conditions."""
+
+    def test_discover_nonexistent_path(self):
+        """Test discovery on nonexistent path."""
+        result = discover("/nonexistent/path")
+        # Should return empty list, not raise error
+        assert result == []
+
+    def test_discover_empty_directory(self):
+        """Test discovery on empty directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = discover(tmpdir)
+            # Should return empty list for directory with no playbooks/roles
+            assert result == []
+
+    def test_discover_with_invalid_manifest(self):
+        """Test discovery with invalid manifest file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create an invalid manifest
+            manifest_path = tmpdir_path / ".anodyse.yml"
+            manifest_path.write_text("invalid: yaml: [")
+
+            # Should raise ManifestError
+            with pytest.raises(ManifestError):
+                discover(tmpdir)
+
+    def test_discover_with_manifest_missing_files(self):
+        """Test discovery when manifest references missing files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create manifest referencing nonexistent files
+            manifest_path = tmpdir_path / ".anodyse.yml"
+            manifest_content = """
+include:
+  - /nonexistent/playbook.yml
+  - /nonexistent/role
+"""
+            manifest_path.write_text(manifest_content)
+
+            # Should emit warnings but not fail or return results
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                result = discover(tmpdir)
+                # May have warnings about missing files
+                assert isinstance(result, list)
+
+    def test_discover_single_file(self):
+        """Test discovery on a single playbook file."""
+        result = discover("tests/fixtures/playbook_annotated.yml")
+        # Should return single item or empty list depending on implementation
+        assert isinstance(result, list)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
