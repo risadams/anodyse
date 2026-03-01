@@ -1,0 +1,9 @@
+# {{ title }}
+
+{{ description or "⚠️ This role is undocumented." }}
+
+## Tasks
+
+{% for task in tasks %}
+- {{ task.name }}
+{% endfor %}

@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anodyse"
+version = "0.1.0"
+description = "Generate user-facing docs from Ansible playbooks and roles with @annotations"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Anodyse Contributors"}
+]
+dependencies = [
+    "click>=8.0",
+    "ruamel.yaml>=0.18",
+    "jinja2>=3.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1"
+]
+
+[project.scripts]
+anodyse = "anodyse.cli:main"
+
+[tool.ruff]
+line-length = 100
+extend-select = ["E", "W", "F", "I"]
+target-version = "py311"
+
+[tool.ruff.isort]
+known-first-party = ["anodyse"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=anodyse --cov-fail-under=80 --cov-report=term-missing"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["anodyse"]
+omit = [
+    "*/__init__.py",
+    "*/templates/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

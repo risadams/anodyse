@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: Example Author
+  description: Configures web server
+  company: Example Corp
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "20.04"
+        - "22.04"
+  galaxy_tags:
+    - webserver
+    - nginx
+
+dependencies: []

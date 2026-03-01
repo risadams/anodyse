@@ -1,0 +1,7 @@
+# Documentation Index
+
+| Title | Type | Tags | Description |
+|-------|------|------|-------------|
+{% for entry in entries %}
+| {{ entry.title }} | {{ entry.item_type }} | {{ entry.doc_tags \| join(", ") }} | {{ entry.description or "Undocumented" }} |
+{% endfor %}
