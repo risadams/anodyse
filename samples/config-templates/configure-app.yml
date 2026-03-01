@@ -1,0 +1,280 @@
+# @title Application Configuration Management
+# @description Deploy and manage application configuration files using Jinja2 templates with environment-specific settings
+# @param environment Target environment (production, staging, development, test)
+# @param config_version Configuration version to deploy
+# @param enable_debug Enable debug logging mode
+# @warning Production configurations contain sensitive data - use Ansible Vault
+# @warning Always validate generated configurations before applying to production
+# @example ansible-playbook configure-app.yml -e "environment=production config_version=2.1.0"
+# @example ansible-playbook configure-app.yml -e "environment=development enable_debug=true"
+# @tag configuration
+# @tag templates
+# @tag config-management
+
+---
+- name: Application Configuration Management
+  hosts: app_servers
+  become: true
+  
+  vars:
+    # Environment configuration
+    environment: development
+    config_version: "1.0.0"
+    config_base_path: /etc/myapp
+    
+    # Application settings
+    app_name: myapp
+    app_port: 8080
+    app_user: appuser
+    enable_debug: false
+    log_level: "{{ 'DEBUG' if enable_debug else 'INFO' }}"
+    
+    # Database configuration
+    db_host: localhost
+    db_port: 5432
+    db_name: "myapp_{{ environment }}"
+    db_username: "myapp_user"
+    db_pool_min: 5
+    db_pool_max: 20
+    
+    # Cache configuration
+    redis_host: localhost
+    redis_port: 6379
+    redis_db: 0
+    cache_ttl: 3600
+    
+    # Feature flags
+    feature_flags:
+      enable_api_v2: true
+      enable_analytics: "{{ environment == 'production' }}"
+      enable_experimental: "{{ environment in ['development', 'test'] }}"
+      enable_rate_limiting: "{{ environment == 'production' }}"
+    
+    # Security settings
+    session_timeout: 1800
+    jwt_expiration: 3600
+    cors_allowed_origins:
+      - "https://app.example.com"
+      - "https://www.example.com"
+    
+    # Email configuration
+    smtp_host: smtp.example.com
+    smtp_port: 587
+    smtp_from: "noreply@example.com"
+    
+    # Monitoring endpoints
+    metrics_enabled: true
+    health_check_path: /health
+    metrics_path: /metrics
+    
+  tasks:
+    # @title Create configuration directory
+    # @description Ensure application configuration directory exists with proper permissions
+    # @param config_base_path Base directory for configuration files
+    - name: Create configuration directory
+      file:
+        path: "{{ config_base_path }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0750'
+        
+    # @title Deploy main application configuration
+    # @description Generate application.yml from template with environment-specific values
+    # @param environment Target environment name
+    # @param app_port Application HTTP port
+    # @param db_host Database server hostname
+    - name: Deploy application.yml configuration
+      template:
+        src: templates/application.yml.j2
+        dest: "{{ config_base_path }}/application.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0640'
+        backup: yes
+      notify: Restart application
+      
+    # @title Deploy database connection configuration
+    # @description Generate database.ini with connection pool settings
+    # @param db_pool_max Maximum database connection pool size
+    # @warning Contains sensitive database credentials - restrict permissions
+    - name: Deploy database configuration
+      template:
+        src: templates/database.ini.j2
+        dest: "{{ config_base_path }}/database.ini"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+        backup: yes
+      notify: Restart application
+      no_log: true
+      
+    # @title Deploy logging configuration
+    # @description Generate log4j2.xml with environment-specific log levels
+    # @param log_level Logging level (DEBUG, INFO, WARN, ERROR)
+    # @param enable_debug Enable debug mode with verbose logging
+    - name: Deploy logging configuration
+      template:
+        src: templates/log4j2.xml.j2
+        dest: "{{ config_base_path }}/log4j2.xml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+        backup: yes
+      notify: Restart application
+      
+    # @title Deploy cache configuration
+    # @description Generate redis.conf with cache settings
+    # @param redis_host Redis server hostname
+    # @param cache_ttl Default cache TTL in seconds
+    - name: Deploy cache configuration
+      template:
+        src: templates/redis.conf.j2
+        dest: "{{ config_base_path }}/redis.conf"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+        backup: yes
+      notify: Restart application
+      
+    # @title Deploy feature flags configuration
+    # @description Generate feature-flags.json with environment-specific feature toggles
+    # @param feature_flags Dictionary of feature flags and their states
+    - name: Deploy feature flags
+      template:
+        src: templates/feature-flags.json.j2
+        dest: "{{ config_base_path }}/feature-flags.json"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+        backup: yes
+      notify: Reload feature flags
+      
+    # @title Deploy security configuration
+    # @description Generate security.properties with authentication and session settings
+    # @param session_timeout Session timeout in seconds
+    # @param jwt_expiration JWT token expiration time
+    - name: Deploy security configuration
+      template:
+        src: templates/security.properties.j2
+        dest: "{{ config_base_path }}/security.properties"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+        backup: yes
+      notify: Restart application
+      
+    # @title Deploy NGINX proxy configuration
+    # @description Generate NGINX reverse proxy config for the application
+    # @param app_port Backend application port
+    - name: Deploy nginx proxy configuration
+      template:
+        src: templates/nginx-proxy.conf.j2
+        dest: /etc/nginx/conf.d/{{ app_name }}.conf
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      notify: Reload nginx
+      
+    # @title Deploy environment variables file
+    # @description Generate .env file with environment-specific variables
+    # @param environment Current environment name
+    - name: Deploy environment variables
+      template:
+        src: templates/env.j2
+        dest: "{{ config_base_path }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+        backup: yes
+      notify: Restart application
+      no_log: true
+      
+    # @title Deploy email templates
+    # @description Generate email notification templates for user communications
+    # @param smtp_from Email sender address
+    - name: Deploy welcome email template
+      template:
+        src: templates/emails/welcome.html.j2
+        dest: "{{ config_base_path }}/email-templates/welcome.html"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+        
+    - name: Deploy password reset email template
+      template:
+        src: templates/emails/password-reset.html.j2
+        dest: "{{ config_base_path }}/email-templates/password-reset.html"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+        
+    # @title Deploy monitoring configuration
+    # @description Generate Prometheus metrics exporter configuration
+    # @param metrics_enabled Enable Prometheus metrics endpoint
+    - name: Deploy metrics configuration
+      template:
+        src: templates/metrics.yml.j2
+        dest: "{{ config_base_path }}/metrics.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+      when: metrics_enabled | bool
+      notify: Restart application
+      
+    # @title Validate generated configurations
+    # @description Run validation checks on generated configuration files
+    - name: Validate YAML configurations
+      command: "python3 -c 'import yaml; yaml.safe_load(open(\"{{ item }}\"))'"
+      loop:
+        - "{{ config_base_path }}/application.yml"
+        - "{{ config_base_path }}/metrics.yml"
+      changed_when: false
+      
+    - name: Validate JSON configurations
+      command: "python3 -c 'import json; json.load(open(\"{{ item }}\"))'"
+      loop:
+        - "{{ config_base_path }}/feature-flags.json"
+      changed_when: false
+      
+    # @title Set file ownership recursively
+    # @description Ensure all configuration files are owned by application user
+    - name: Set configuration directory ownership
+      file:
+        path: "{{ config_base_path }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        recurse: yes
+        
+    # @title Create configuration backup
+    # @description Archive current configuration for rollback capability
+    # @param config_version Configuration version identifier
+    - name: Create configuration backup
+      archive:
+        path: "{{ config_base_path }}"
+        dest: "/var/backups/{{ app_name }}-config-{{ config_version }}-{{ ansible_date_time.iso8601_basic_short }}.tar.gz"
+        owner: root
+        group: root
+        mode: '0600'
+        
+  handlers:
+    # @title Restart application service
+    # @description Restart application to load new configuration
+    - name: Restart application
+      systemd:
+        name: "{{ app_name }}"
+        state: restarted
+        
+    # @title Reload feature flags
+    # @description Send SIGHUP to reload feature flags without restart
+    - name: Reload feature flags
+      command: "killall -HUP {{ app_name }}"
+      failed_when: false
+      
+    # @title Reload NGINX
+    # @description Reload NGINX configuration without dropping connections
+    - name: Reload nginx
+      systemd:
+        name: nginx
+        state: reloaded

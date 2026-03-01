@@ -1,0 +1,27 @@
+---
+# Prometheus version
+prometheus_version: "2.45.0"
+
+# Server configuration
+prometheus_port: 9090
+prometheus_listen_address: "0.0.0.0"
+retention_days: 30
+retention_size: "50GB"
+
+# Scrape configuration
+scrape_interval: "15s"
+scrape_timeout: "10s"
+evaluation_interval: "15s"
+
+# External labels
+prometheus_external_labels:
+  cluster: "production"
+  environment: "{{ environment | default('production') }}"
+
+# Alertmanager configuration
+alertmanager_url: "http://localhost:9093"
+enable_alertmanager: true
+
+# Authentication
+enable_auth: false
+auth_username: admin

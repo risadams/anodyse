@@ -1,0 +1,138 @@
+# @title Application Server Deployment
+# @description Deploy Java-based enterprise application server with database connectivity
+# @param app_version Application version to deploy
+# @param app_artifact_url URL to download application artifact
+# @warning Requires Java runtime to be installed first
+# @tag application
+# @tag deployment
+# @tag java
+
+---
+# @title Download application artifact
+# @description Fetch application JAR from artifact repository
+# @param app_artifact_url Maven repository URL for the application artifact
+- name: Download application JAR
+  get_url:
+    url: "{{ app_artifact_url }}/{{ app_artifact_name }}-{{ app_version }}.jar"
+    dest: "{{ app_home }}/{{ app_artifact_name }}.jar"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  notify: Restart application
+
+# @title Deploy application configuration
+# @description Generate application.properties from template with database connection details
+- name: Deploy application properties
+  template:
+    src: application.properties.j2
+    dest: "{{ app_home }}/config/application.properties"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0640'
+  notify: Restart application
+  no_log: true
+
+# @title Configure JVM options
+# @description Set Java heap size and garbage collection parameters
+# @param jvm_memory_max Maximum heap size (e.g., 2048m)
+# @param jvm_memory_min Initial heap size (e.g., 512m)
+- name: Configure JVM options
+  template:
+    src: jvm.options.j2
+    dest: "{{ app_home }}/config/jvm.options"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  notify: Restart application
+
+# @title Create systemd service unit
+# @description Deploy systemd service file for application management
+- name: Deploy systemd service file
+  template:
+    src: app-service.service.j2
+    dest: /etc/systemd/system/{{ app_service_name }}.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart application
+
+# @title Configure log rotation
+# @description Set up logrotate for application logs
+- name: Configure logrotate
+  template:
+    src: logrotate.j2
+    dest: /etc/logrotate.d/{{ app_service_name }}
+    owner: root
+    group: root
+    mode: '0644'
+
+# @title Create required directories
+# @description Ensure all application directories exist with correct permissions
+- name: Create application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  loop:
+    - "{{ app_home }}/config"
+    - "{{ app_home }}/logs"
+    - "{{ app_home }}/temp"
+    - "{{ app_home }}/data"
+
+# @title Deploy database migration scripts
+# @description Copy database schema migration scripts
+- name: Deploy database migrations
+  copy:
+    src: migrations/
+    dest: "{{ app_home }}/migrations/"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+
+# @title Run database migrations
+# @description Execute Flyway migrations against database
+# @warning Migrations run only on first app server to avoid conflicts
+- name: Execute database migrations
+  command: >
+    java -jar {{ app_home }}/{{ app_artifact_name }}.jar
+    --flyway.migrate
+  args:
+    chdir: "{{ app_home }}"
+  become_user: "{{ app_user }}"
+  when: inventory_hostname == groups['app_servers'][0]
+  register: migration_result
+  changed_when: "'Migrating schema' in migration_result.stdout"
+
+# @title Enable and start application service
+# @description Ensure application service is running and enabled at boot
+- name: Start application service
+  systemd:
+    name: "{{ app_service_name }}"
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+# @title Configure application monitoring
+# @description Expose metrics endpoint for Prometheus scraping
+- name: Deploy Prometheus JMX exporter
+  get_url:
+    url: "{{ jmx_exporter_url }}"
+    dest: "{{ app_home }}/jmx_prometheus_javaagent.jar"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  when: enable_monitoring | default(false) | bool
+
+- name: Deploy JMX exporter configuration
+  template:
+    src: jmx-exporter-config.yml.j2
+    dest: "{{ app_home }}/config/jmx-exporter.yml"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  when: enable_monitoring | default(false) | bool
+  notify: Restart application

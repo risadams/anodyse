@@ -1,0 +1,93 @@
+# @title PostgreSQL Cluster Deployment
+# @description Configure PostgreSQL database cluster with streaming replication and high availability
+# @param db_version PostgreSQL version to install (default: 14)
+# @param replication_user Username for replication connections
+# @warning Replication passwords must be stored in Ansible Vault
+# @tag database
+# @tag postgresql
+# @tag replication
+
+---
+- name: Install PostgreSQL packages
+  package:
+    name:
+      - postgresql-{{ db_version | default('14') }}
+      - postgresql-contrib-{{ db_version | default('14') }}
+      - postgresql-client-{{ db_version | default('14') }}
+      - python3-psycopg2
+    state: present
+  tags: install
+
+# @title Initialize database cluster
+# @description Create PostgreSQL data directory and initialize database
+- name: Initialize PostgreSQL database
+  command: /usr/bin/postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/{{ db_version | default('14') }}/data/PG_VERSION
+  notify: Start postgresql
+
+# @title Configure PostgreSQL authentication
+# @description Set up pg_hba.conf for replication and application access
+# @param replication_subnet CIDR subnet allowed for replication connections
+- name: Configure pg_hba for replication
+  postgresql_pg_hba:
+    dest: /var/lib/pgsql/{{ db_version | default('14') }}/data/pg_hba.conf
+    contype: host
+    databases: replication
+    users: "{{ replication_user }}"
+    source: "{{ replication_subnet | default('10.0.0.0/8') }}"
+    method: md5
+  notify: Reload postgresql
+
+# @title Deploy PostgreSQL configuration
+# @description Apply custom postgresql.conf with performance tuning and replication settings
+- name: Deploy postgresql.conf
+  template:
+    src: postgresql.conf.j2
+    dest: /var/lib/pgsql/{{ db_version | default('14') }}/data/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  notify: Restart postgresql
+
+# @title Create replication user
+# @description Set up dedicated user for streaming replication
+- name: Create replication user
+  postgresql_user:
+    name: "{{ replication_user }}"
+    password: "{{ replication_password }}"
+    role_attr_flags: REPLICATION
+    state: present
+  become_user: postgres
+  when: inventory_hostname == groups['database_servers'][0]
+
+# @title Configure streaming replication
+# @description Set up standby servers with recovery configuration
+- name: Configure standby servers
+  template:
+    src: recovery.conf.j2
+    dest: /var/lib/pgsql/{{ db_version | default('14') }}/data/standby.signal
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  when: inventory_hostname != groups['database_servers'][0]
+  notify: Restart postgresql
+
+# @title Setup replication slots
+# @description Create replication slots on primary for each standby
+- name: Create replication slots
+  postgresql_slot:
+    name: "slot_{{ hostvars[item].inventory_hostname_short }}"
+    slot_type: physical
+    state: present
+  become_user: postgres
+  loop: "{{ groups['database_servers'][1:] }}"
+  when: inventory_hostname == groups['database_servers'][0]
+
+# @title Enable and start PostgreSQL service
+# @description Ensure PostgreSQL is running and enabled at boot
+- name: Enable PostgreSQL service
+  systemd:
+    name: postgresql-{{ db_version | default('14') }}
+    enabled: yes
+    state: started

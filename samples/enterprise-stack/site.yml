@@ -1,0 +1,239 @@
+# @title Enterprise Application Stack Orchestrator
+# @description Comprehensive deployment of a three-tier enterprise application stack with database cluster, application servers, load balancers, and monitoring
+# @param environment Deployment environment (production, staging, development)
+# @param app_version Application version to deploy (semver format)
+# @param db_cluster_size Number of database nodes in the cluster (default: 3)
+# @param enable_monitoring Enable Prometheus monitoring and alerting
+# @param enable_backup Enable automated backup scheduling
+# @warning Production deployments require pre-approval and maintenance window
+# @warning Ensure all prerequisites are met before running this playbook
+# @example ansible-playbook site.yml -e "environment=production app_version=2.1.0"
+# @example ansible-playbook site.yml -e "environment=staging app_version=2.1.0-rc1 enable_monitoring=true"
+# @tag enterprise
+# @tag orchestration
+# @tag production
+
+---
+- name: Deploy Database Cluster
+  hosts: database_servers
+  become: true
+  
+  vars:
+    db_cluster_size: 3
+    db_port: 5432
+    db_replication_mode: streaming
+    enable_backup: true
+    
+  pre_tasks:
+    # @title Validate cluster prerequisites
+    # @description Check system requirements and network connectivity for database cluster
+    - name: Verify minimum system requirements
+      assert:
+        that:
+          - ansible_memtotal_mb >= 4096
+          - ansible_processor_vcpus >= 2
+        fail_msg: "Database servers require at least 4GB RAM and 2 CPU cores"
+        
+    # @title Check network connectivity
+    # @description Ensure all database nodes can communicate with each other
+    - name: Test inter-node connectivity
+      wait_for:
+        host: "{{ hostvars[item].ansible_host }}"
+        port: "{{ db_port }}"
+        timeout: 10
+      loop: "{{ groups['database_servers'] }}"
+      when: inventory_hostname != item
+      
+  roles:
+    - role: postgresql-cluster
+      tags: ['database', 'cluster']
+    - role: backup-manager
+      when: enable_backup | bool
+      tags: ['backup']
+
+
+- name: Deploy Application Servers
+  hosts: app_servers
+  become: true
+  serial: "50%"
+  
+  vars:
+    app_user: appservice
+    app_port: 8080
+    app_home: /opt/enterprise-app
+    jvm_memory_max: "2048m"
+    jvm_memory_min: "512m"
+    
+  pre_tasks:
+    # @title Create application user
+    # @description Create dedicated system user for running application services
+    # @param app_user Username for the application service account
+    - name: Create application service user
+      user:
+        name: "{{ app_user }}"
+        system: yes
+        shell: /usr/sbin/nologin
+        home: "{{ app_home }}"
+        create_home: yes
+        
+    # @title Validate database connectivity
+    # @description Ensure application servers can reach the database cluster
+    - name: Test database connection
+      postgresql_ping:
+        login_host: "{{ hostvars[groups['database_servers'][0]].ansible_host }}"
+        login_port: "{{ db_port }}"
+      register: db_connection
+      
+  roles:
+    - role: java-runtime
+      java_version: 17
+      tags: ['java', 'runtime']
+    - role: app-server
+      tags: ['application', 'deploy']
+    - role: log-aggregator
+      tags: ['logging']
+      
+  post_tasks:
+    # @title Verify application health
+    # @description Check application health endpoint after deployment
+    - name: Wait for application startup
+      uri:
+        url: "http://localhost:{{ app_port }}/actuator/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      retries: 10
+      delay: 6
+      until: health_check.status == 200
+
+
+- name: Deploy Load Balancers
+  hosts: load_balancers
+  become: true
+  
+  vars:
+    lb_algorithm: least_conn
+    lb_health_check_interval: 5
+    lb_max_fails: 3
+    ssl_certificate_path: /etc/ssl/certs/enterprise.crt
+    ssl_key_path: /etc/ssl/private/enterprise.key
+    
+  pre_tasks:
+    # @title Validate SSL certificates
+    # @description Ensure SSL/TLS certificates exist and are valid
+    # @warning SSL certificates must be deployed separately via secure channel
+    - name: Check for SSL certificate
+      stat:
+        path: "{{ ssl_certificate_path }}"
+      register: ssl_cert
+      
+    - name: Fail if SSL certificate missing in production
+      fail:
+        msg: "SSL certificate not found at {{ ssl_certificate_path }}"
+      when:
+        - environment == "production"
+        - not ssl_cert.stat.exists
+        
+  roles:
+    - role: nginx-lb
+      tags: ['loadbalancer', 'nginx']
+    - role: ssl-manager
+      when: environment == "production"
+      tags: ['ssl', 'security']
+      
+  post_tasks:
+    # @title Test load balancer configuration
+    # @description Validate NGINX configuration before reloading
+    - name: Test nginx configuration
+      command: nginx -t
+      changed_when: false
+      
+    # @title Reload load balancer
+    # @description Apply new configuration without dropping connections
+    - name: Reload nginx service
+      systemd:
+        name: nginx
+        state: reloaded
+
+
+- name: Configure Monitoring Stack
+  hosts: monitoring_servers
+  become: true
+  
+  vars:
+    prometheus_port: 9090
+    grafana_port: 3000
+    alertmanager_port: 9093
+    retention_days: 30
+    
+  roles:
+    - role: prometheus-server
+      when: enable_monitoring | default(false) | bool
+      tags: ['monitoring', 'prometheus']
+    - role: grafana-dashboard
+      when: enable_monitoring | default(false) | bool
+      tags: ['monitoring', 'grafana']
+    - role: alertmanager
+      when: enable_monitoring | default(false) | bool
+      tags: ['monitoring', 'alerts']
+      
+  tasks:
+    # @title Configure Prometheus targets
+    # @description Auto-discover and configure monitoring targets from inventory
+    - name: Generate Prometheus targets configuration
+      template:
+        src: prometheus-targets.yml.j2
+        dest: /etc/prometheus/targets.d/dynamic.yml
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+      notify: Reload prometheus
+      when: enable_monitoring | default(false) | bool
+      
+    # @title Import Grafana dashboards
+    # @description Deploy pre-configured dashboards for application metrics
+    # @param grafana_port Port number for Grafana web interface
+    - name: Import application dashboard
+      grafana_dashboard:
+        grafana_url: "http://localhost:{{ grafana_port }}"
+        state: present
+        path: /opt/dashboards/application-metrics.json
+      when: enable_monitoring | default(false) | bool
+      
+  handlers:
+    - name: Reload prometheus
+      systemd:
+        name: prometheus
+        state: reloaded
+
+
+- name: Final Verification and Smoke Tests
+  hosts: localhost
+  gather_facts: false
+  
+  tasks:
+    # @title End-to-end connectivity test
+    # @description Verify full request path from load balancer through application to database
+    - name: Test load balancer endpoint
+      uri:
+        url: "https://{{ hostvars[groups['load_balancers'][0]].ansible_host }}/api/health"
+        method: GET
+        validate_certs: false
+        status_code: 200
+      register: e2e_test
+      retries: 3
+      delay: 5
+      
+    # @title Generate deployment report
+    # @description Create summary report of deployment status
+    - name: Create deployment summary
+      debug:
+        msg:
+          - "=== Deployment Complete ==="
+          - "Environment: {{ environment }}"
+          - "Application Version: {{ app_version }}"
+          - "Database Nodes: {{ groups['database_servers'] | length }}"
+          - "Application Servers: {{ groups['app_servers'] | length }}"
+          - "Load Balancers: {{ groups['load_balancers'] | length }}"
+          - "Monitoring Enabled: {{ enable_monitoring | default(false) }}"
+          - "Backup Enabled: {{ enable_backup | default(false) }}"

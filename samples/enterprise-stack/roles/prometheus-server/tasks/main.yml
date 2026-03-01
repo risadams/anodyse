@@ -1,0 +1,126 @@
+# @title Prometheus Monitoring Server Setup
+# @description Deploy and configure Prometheus monitoring server with service discovery
+# @param prometheus_version Prometheus version to install
+# @param retention_days Data retention period in days
+# @tag monitoring
+# @tag prometheus
+# @tag observability
+
+---
+# @title Create Prometheus user
+# @description Create dedicated system user for Prometheus service
+- name: Create prometheus user
+  user:
+    name: prometheus
+    system: yes
+    shell: /usr/sbin/nologin
+    create_home: no
+
+# @title Download Prometheus
+# @description Download and extract Prometheus binary distribution
+# @param prometheus_version Version of Prometheus to download
+- name: Download prometheus
+  get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+  
+- name: Extract prometheus
+  unarchive:
+    src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+    dest: /opt/
+    remote_src: yes
+    creates: "/opt/prometheus-{{ prometheus_version }}.linux-amd64"
+
+# @title Create Prometheus directories
+# @description Set up required directories with proper ownership
+- name: Create prometheus directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: '0755'
+  loop:
+    - /etc/prometheus
+    - /etc/prometheus/rules.d
+    - /etc/prometheus/targets.d
+    - /var/lib/prometheus
+    - /var/log/prometheus
+
+# @title Deploy Prometheus configuration
+# @description Generate prometheus.yml with scrape configs and alerting rules
+# @param retention_days How long to keep metrics data
+- name: Deploy prometheus configuration
+  template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+  notify: Reload prometheus
+
+# @title Deploy alerting rules
+# @description Configure alert rules for application and infrastructure monitoring
+- name: Deploy alert rules
+  template:
+    src: alerts.yml.j2
+    dest: /etc/prometheus/rules.d/alerts.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+  notify: Reload prometheus
+
+# @title Configure recording rules
+# @description Set up pre-computed metrics for dashboard performance
+- name: Deploy recording rules
+  template:
+    src: recording-rules.yml.j2
+    dest: /etc/prometheus/rules.d/recording.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+  notify: Reload prometheus
+
+# @title Create systemd service
+# @description Deploy systemd unit file for Prometheus service management
+- name: Deploy prometheus systemd service
+  template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart prometheus
+
+# @title Enable and start Prometheus
+# @description Ensure Prometheus service is running and enabled at boot
+- name: Start prometheus service
+  systemd:
+    name: prometheus
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+# @title Configure Prometheus web authentication
+# @description Set up basic authentication for Prometheus web UI
+- name: Deploy web authentication config
+  template:
+    src: web-config.yml.j2
+    dest: /etc/prometheus/web-config.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0600'
+  notify: Restart prometheus
+  when: enable_auth | default(false) | bool
+
+# @title Open Prometheus port in firewall
+# @description Allow access to Prometheus web interface
+- name: Open prometheus port
+  firewalld:
+    port: "{{ prometheus_port }}/tcp"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  when: ansible_os_family == "RedHat"

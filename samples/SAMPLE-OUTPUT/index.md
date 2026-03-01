@@ -4,13 +4,25 @@
 | Title | Type | Tags | Description |
 |-------|------|------|-------------|
 
+| [Application Configuration Management](application-configuration-management.md) | playbook | configuration, templates, config-management | Deploy and manage application configuration files using Jinja2 templates with environment-specific settings |
+
 | [PostgreSQL Database Server Deployment](postgresql-database-server-deployment.md) | playbook | database, postgresql, security | Install and configure PostgreSQL database server with security hardening |
+
+| [Enterprise Application Stack Orchestrator](enterprise-application-stack-orchestrator.md) | playbook | enterprise, orchestration, production | Comprehensive deployment of a three-tier enterprise application stack with database cluster, application servers, load balancers, and monitoring |
 
 | [Multi-Tier Application Stack Deployment](multi-tier-application-stack-deployment.md) | playbook | multi-tier, loadbalancer, high-availability | Deploy a complete 3-tier application stack with load balancer, app servers, and database |
 
 | [System Security Hardening](system-security-hardening.md) | playbook | security, hardening, compliance | Apply security hardening measures to Linux systems following CIS benchmarks |
 
 | [NGINX Web Server Deployment](nginx-web-server-deployment.md) | playbook | — | Deploy and configure NGINX web server with SSL/TLS support and custom site configuration |
+
+| [Application Server Deployment](application-server-deployment.md) | role | application, deployment, java | Deploy Java-based enterprise application server with database connectivity |
+
+| [NGINX Load Balancer Configuration](nginx-load-balancer-configuration.md) | role | loadbalancer, nginx, ssl | Deploy and configure NGINX as a reverse proxy load balancer with SSL termination |
+
+| [PostgreSQL Cluster Deployment](postgresql-cluster-deployment.md) | role | database, postgresql, replication | Configure PostgreSQL database cluster with streaming replication and high availability |
+
+| [Prometheus Monitoring Server Setup](prometheus-monitoring-server-setup.md) | role | monitoring, prometheus, observability | Deploy and configure Prometheus monitoring server with service discovery |
 
 
 

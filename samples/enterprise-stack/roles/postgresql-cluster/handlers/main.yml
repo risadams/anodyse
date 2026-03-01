@@ -1,0 +1,15 @@
+---
+- name: Start postgresql
+  systemd:
+    name: postgresql-{{ db_version | default('14') }}
+    state: started
+
+- name: Restart postgresql
+  systemd:
+    name: postgresql-{{ db_version | default('14') }}
+    state: restarted
+
+- name: Reload postgresql
+  systemd:
+    name: postgresql-{{ db_version | default('14') }}
+    state: reloaded

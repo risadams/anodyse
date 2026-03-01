@@ -1,0 +1,25 @@
+---
+galaxy_info:
+  role_name: postgresql-cluster
+  author: Enterprise DevOps Team
+  description: Deploy and configure PostgreSQL cluster with streaming replication
+  company: Enterprise Corp
+  license: MIT
+  min_ansible_version: 2.10
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - database
+    - postgresql
+    - cluster
+    - replication
+    - highavailability
+
+dependencies: []

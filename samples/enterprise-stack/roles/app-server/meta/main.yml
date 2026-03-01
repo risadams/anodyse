@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  role_name: app-server
+  author: Enterprise DevOps Team
+  description: Deploy enterprise Java application server with database connectivity
+  company: Enterprise Corp
+  license: MIT
+  min_ansible_version: 2.10
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - application
+    - java
+    - springboot
+    - microservices
+
+dependencies:
+  - role: java-runtime
+    java_version: 17

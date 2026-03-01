@@ -1,0 +1,25 @@
+---
+galaxy_info:
+  role_name: prometheus-server
+  author: Enterprise DevOps Team
+  description: Deploy Prometheus monitoring server with service discovery and alerting
+  company: Enterprise Corp
+  license: MIT
+  min_ansible_version: 2.10
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - monitoring
+    - prometheus
+    - metrics
+    - alerting
+    - observability
+
+dependencies: []

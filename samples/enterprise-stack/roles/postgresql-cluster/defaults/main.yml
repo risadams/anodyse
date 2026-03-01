@@ -1,0 +1,21 @@
+---
+# PostgreSQL version
+db_version: 14
+
+# Database configuration
+db_port: 5432
+db_max_connections: 200
+db_shared_buffers: "256MB"
+db_effective_cache_size: "1GB"
+db_work_mem: "16MB"
+
+# Replication settings
+replication_user: replicator
+replication_subnet: "10.0.0.0/8"
+db_replication_mode: streaming
+wal_level: replica
+max_wal_senders: 10
+
+# High availability
+enable_archive_mode: true
+archive_command: "/usr/local/bin/archive_wal.sh %p %f"

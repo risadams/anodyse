@@ -1,0 +1,29 @@
+---
+# Load balancer configuration
+lb_algorithm: least_conn
+lb_health_check_interval: 5
+lb_max_fails: 3
+lb_fail_timeout: 30s
+
+# Backend servers (populated from inventory)
+backend_servers: []
+
+# SSL/TLS configuration
+ssl_protocols: "TLSv1.2 TLSv1.3"
+ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+ssl_prefer_server_ciphers: "off"
+ssl_certificate_path: /etc/ssl/certs/enterprise.crt
+ssl_key_path: /etc/ssl/private/enterprise.key
+
+# Proxy settings
+proxy_connect_timeout: 60s
+proxy_send_timeout: 60s
+proxy_read_timeout: 60s
+proxy_buffer_size: 4k
+proxy_buffers_number: 8
+proxy_buffers_size: 4k
+
+# Rate limiting
+enable_rate_limiting: true
+rate_limit_requests: 100
+rate_limit_burst: 50

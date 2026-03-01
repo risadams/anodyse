@@ -1,0 +1,15 @@
+---
+# Application internal variables
+app_full_path: "{{ app_home }}/{{ app_artifact_name }}.jar"
+app_config_path: "{{ app_home }}/config"
+app_log_path: "{{ app_home }}/logs"
+
+# Systemd service configuration
+service_restart_policy: "on-failure"
+service_restart_sec: 10
+
+# Required packages
+required_packages:
+  - curl
+  - unzip
+  - netcat

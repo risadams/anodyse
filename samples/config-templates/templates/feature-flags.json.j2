@@ -1,0 +1,48 @@
+{
+  "version": "{{ config_version }}",
+  "environment": "{{ environment }}",
+  "lastUpdated": "{{ ansible_date_time.iso8601 }}",
+  "features": {
+    "api": {
+      "v2Enabled": {{ feature_flags.enable_api_v2 | lower }},
+      "graphqlEnabled": {{ feature_flags.enable_experimental | lower }},
+      "webhooksEnabled": {{ feature_flags.enable_api_v2 | lower }}
+    },
+    "analytics": {
+      "enabled": {{ feature_flags.enable_analytics | lower }},
+      "realTimeMetrics": {{ feature_flags.enable_analytics | lower }},
+      "userTracking": {{ feature_flags.enable_analytics | lower }},
+      "performanceMonitoring": true
+    },
+    "experimental": {
+      "enabled": {{ feature_flags.enable_experimental | lower }},
+      "newDashboard": {{ feature_flags.enable_experimental | lower }},
+      "aiAssistant": {{ feature_flags.enable_experimental | lower }},
+      "betaFeatures": {{ feature_flags.enable_experimental | lower }}
+    },
+    "security": {
+      "rateLimiting": {{ feature_flags.enable_rate_limiting | lower }},
+      "ipWhitelisting": {{ 'true' if environment == 'production' else 'false' }},
+      "mfaRequired": {{ 'true' if environment == 'production' else 'false' }},
+      "passwordStrength": "{{ 'strong' if environment == 'production' else 'moderate' }}"
+    },
+    "performance": {
+      "cacheEnabled": true,
+      "compressionEnabled": {{ 'true' if environment == 'production' else 'false' }},
+      "cdnEnabled": {{ 'true' if environment == 'production' else 'false' }},
+      "lazyLoading": true
+    },
+    "notifications": {
+      "emailEnabled": true,
+      "smsEnabled": {{ 'true' if environment == 'production' else 'false' }},
+      "pushEnabled": {{ 'true' if environment == 'production' else 'false' }},
+      "webhooksEnabled": {{ feature_flags.enable_api_v2 | lower }}
+    }
+  },
+  "limits": {
+    "maxRequestSize": "{{ '10MB' if environment == 'production' else '5MB' }}",
+    "maxConcurrentConnections": {{ '1000' if environment == 'production' else '100' }},
+    "requestRateLimit": {{ '100' if feature_flags.enable_rate_limiting else '1000' }},
+    "burstLimit": {{ '50' if feature_flags.enable_rate_limiting else '500' }}
+  }
+}

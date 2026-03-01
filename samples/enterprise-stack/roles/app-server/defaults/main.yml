@@ -1,0 +1,29 @@
+---
+# Application configuration
+app_artifact_name: enterprise-app
+app_service_name: enterprise-app
+app_user: appservice
+app_home: /opt/enterprise-app
+app_port: 8080
+app_management_port: 8081
+
+# JVM configuration
+jvm_memory_max: "2048m"
+jvm_memory_min: "512m"
+jvm_gc_type: "G1GC"
+
+# Database connection
+db_host: localhost
+db_port: 5432
+db_name: enterprise_db
+db_username: app_user
+db_pool_size: 20
+db_pool_timeout: 30000
+
+# Artifact repository
+app_artifact_url: "https://nexus.example.com/repository/releases"
+
+# Monitoring
+enable_monitoring: false
+jmx_exporter_url: "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.19.0/jmx_prometheus_javaagent-0.19.0.jar"
+metrics_port: 9090
