@@ -1,8 +1,12 @@
 """YAML parser for Ansible playbooks and roles."""
 
-from typing import Literal
+from pathlib import Path
+from typing import Any, Literal
 
-from .models import PlaybookData, RoleData
+from ruamel.yaml import YAML
+
+from .exceptions import ParseError
+from .models import PlaybookData, RoleData, TaskData
 
 
 def detect_type(path: str) -> Literal["playbook", "role", "unknown"]:
@@ -14,7 +18,42 @@ def detect_type(path: str) -> Literal["playbook", "role", "unknown"]:
     Returns:
         "playbook", "role", or "unknown"
     """
-    raise NotImplementedError("detect_type() not yet implemented")
+    p = Path(path).resolve()
+
+    # Check for playbook file
+    if p.is_file() and p.suffix in {".yml", ".yaml"}:
+        try:
+            if _has_hosts_key(p):
+                return "playbook"
+        except Exception:
+            pass
+
+    # Check for role directory
+    if p.is_dir():
+        if (p / "tasks" / "main.yml").exists():
+            return "role"
+
+    return "unknown"
+
+
+def _has_hosts_key(path: Path) -> bool:
+    """Check if a YAML file has a top-level 'hosts' key."""
+    try:
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        with open(path, encoding="utf-8") as f:
+            content = yaml.load(f)
+
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and "hosts" in item:
+                    return True
+        elif isinstance(content, dict) and "hosts" in content:
+            return True
+    except Exception:
+        pass
+
+    return False
 
 
 def parse_playbook(path: str) -> PlaybookData:
@@ -32,7 +71,71 @@ def parse_playbook(path: str) -> PlaybookData:
     Raises:
         ParseError: If YAML is malformed or missing required fields
     """
-    raise NotImplementedError("parse_playbook() not yet implemented")
+    file_path = Path(path).resolve()
+
+    if not file_path.exists():
+        raise ParseError(f"File not found: {path}")
+
+    if not file_path.is_file():
+        raise ParseError(f"Path is not a file: {path}")
+
+    try:
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        with open(file_path, encoding="utf-8") as f:
+            content = yaml.load(f)
+    except Exception as e:
+        raise ParseError(f"Failed to parse YAML file {path}: {e}") from e
+
+    # Playbook is typically a list of play dicts, but single play is also valid
+    plays = content if isinstance(content, list) else [content]
+
+    # For MVP, we use the first play
+    if not plays or not isinstance(plays[0], dict):
+        raise ParseError(f"Invalid playbook format in {path}: expected play dictionary")
+
+    play = plays[0]
+
+    # Validate required 'hosts' key
+    if "hosts" not in play:
+        raise ParseError(f"Playbook missing required 'hosts' key: {path}")
+
+    # Extract data
+    hosts = play.get("hosts", "")
+    title = play.get("name", file_path.stem)
+    tags = play.get("tags", []) or []
+    vars_dict = play.get("vars", {}) or {}
+
+    # Parse task lists
+    pre_tasks = _parse_tasks(play.get("pre_tasks", []) or [])
+    tasks = _parse_tasks(play.get("tasks", []) or [])
+    post_tasks = _parse_tasks(play.get("post_tasks", []) or [])
+    handlers = _parse_tasks(play.get("handlers", []) or [])
+
+    # Extract roles referenced
+    roles_list = []
+    if "roles" in play:
+        for role in play.get("roles", []) or []:
+            if isinstance(role, dict):
+                roles_list.append(role.get("role", role.get("name", "")))
+            elif isinstance(role, str):
+                roles_list.append(role)
+
+    return PlaybookData(
+        source_path=file_path,
+        title=None,  # Will be set by extractor
+        description=None,  # Will be set by extractor
+        hosts=hosts,
+        pre_tasks=pre_tasks,
+        tasks=tasks,
+        post_tasks=post_tasks,
+        handlers=handlers,
+        roles=roles_list,
+        params=[],  # Will be set by extractor
+        warnings=[],  # Will be set by extractor
+        examples=[],  # Will be set by extractor
+        doc_tags=[],  # Will be set by extractor
+    )
 
 
 def parse_role(path: str) -> RoleData:
@@ -50,4 +153,115 @@ def parse_role(path: str) -> RoleData:
     Raises:
         ParseError: If tasks/main.yml is missing or malformed
     """
-    raise NotImplementedError("parse_role() not yet implemented")
+    role_path = Path(path).resolve()
+
+    if not role_path.exists():
+        raise ParseError(f"Role directory not found: {path}")
+
+    if not role_path.is_dir():
+        raise ParseError(f"Path is not a directory: {path}")
+
+    # tasks/main.yml is required
+    tasks_file = role_path / "tasks" / "main.yml"
+    if not tasks_file.exists():
+        raise ParseError(f"Role missing required tasks/main.yml: {path}")
+
+    try:
+        yaml = YAML()
+        yaml.preserve_quotes = True
+
+        # Load tasks (required)
+        with open(tasks_file, encoding="utf-8") as f:
+            tasks_content = yaml.load(f)
+        tasks = _parse_tasks(tasks_content or [])
+
+        # Load defaults (optional)
+        defaults_file = role_path / "defaults" / "main.yml"
+        defaults = {}
+        if defaults_file.exists():
+            with open(defaults_file, encoding="utf-8") as f:
+                defaults = yaml.load(f) or {}
+
+        # Load vars (optional)
+        vars_file = role_path / "vars" / "main.yml"
+        vars_dict = {}
+        if vars_file.exists():
+            with open(vars_file, encoding="utf-8") as f:
+                vars_dict = yaml.load(f) or {}
+
+        # Load meta (optional)
+        meta_file = role_path / "meta" / "main.yml"
+        meta = {}
+        if meta_file.exists():
+            with open(meta_file, encoding="utf-8") as f:
+                meta = yaml.load(f) or {}
+
+    except ParseError:
+        raise
+    except Exception as e:
+        raise ParseError(f"Failed to parse role {path}: {e}") from e
+
+    return RoleData(
+        source_path=role_path,
+        title=None,  # Will be set by extractor
+        description=None,  # Will be set by extractor
+        tasks=tasks,
+        defaults=defaults,
+        vars=vars_dict,
+        params=[],  # Will be set by extractor
+        warnings=[],  # Will be set by extractor
+        examples=[],  # Will be set by extractor
+        doc_tags=[],  # Will be set by extractor
+        meta=meta,
+    )
+
+
+def _parse_tasks(tasks_content: Any) -> list[TaskData]:
+    """Parse a list of task dicts into TaskData instances.
+
+    Args:
+        tasks_content: List of task dicts from YAML
+
+    Returns:
+        List of TaskData instances
+    """
+    tasks = []
+
+    if not isinstance(tasks_content, list):
+        return tasks
+
+    for task_dict in tasks_content:
+        if not isinstance(task_dict, dict):
+            continue
+
+        task_name = task_dict.get("name", "Unnamed task")
+
+        # Find the module (typically all keys except meta keys like 'name', 'when', 'tags', etc.)
+        module = None
+        module_args = {}
+        meta_keys = {"name", "when", "tags", "loop", "with_items", "block", "rescue", "always",
+                     "register", "failed_when", "changed_when", "ignore_errors", "vars", "notify",
+                     "until", "retries", "delay", "throttle", "handlers", "include", "import_tasks",
+                     "include_role", "import_role", "async", "poll"}
+
+        for key, value in task_dict.items():
+            if key not in meta_keys:
+                module = key
+                module_args = value if isinstance(value, dict) else {}
+                break
+
+        if not module:
+            module = "unknown"
+
+        task = TaskData(
+            name=task_name,
+            module=module,
+            args=module_args,
+            description=None,  # Will be set by extractor
+            when=task_dict.get("when"),
+            loop=task_dict.get("loop") or task_dict.get("with_items"),
+            tags=task_dict.get("tags", []) or [],
+        )
+        tasks.append(task)
+
+    return tasks
