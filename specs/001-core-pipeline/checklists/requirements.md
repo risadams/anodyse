@@ -11,7 +11,7 @@
 1. Annotation extraction scope: All levels (playbook, task, role vars)
 2. Diagram complexity: Complex flowchart with conditionals and branches
 3. Role documentation: Tasks + annotated params only
-4. Index discovery: Semantic (follow includes, document referenced roles)
+4. Index discovery: Directory-first with manifest override (recursive scan + optional .anodyse.yml)
 5. Template validation: Schema-validated with warnings (graceful degradation)
 
 ---
@@ -56,10 +56,11 @@
   - ✓ Aligns with annotation-driven principle
 
 - [x] **Index discovery clarified** (Clarification #4)
-  - ✓ FR-009: "When processing a directory, parser MUST follow role includes and document referenced roles separately"
-  - ✓ US3 acceptance scenarios: referenced roles appear in index.md
-  - ✓ FR-014: index lists "all parsed items (including role dependencies discovered via role includes)"
-  - ✓ Edge cases expanded: duplicate roles, circular dependencies
+  - ✓ FR-009: "parser MUST recursively scan for valid playbooks (.yml with hosts: key) and roles (dirs with tasks/main.yml), with optional .anodyse.yml manifest override"
+  - ✓ FR-002: Added --config option for explicit manifest path
+  - ✓ US3 acceptance scenarios: manifest-based filtering with include/exclude lists
+  - ✓ FR-014: index lists "all discovered and documented items" reflecting actual discovery result
+  - ✓ Edge cases expanded: manifest validation, invalid playbook/role detection
 
 - [x] **Template validation clarified** (Clarification #5)
   - ✓ FR-012: "validated against Jinja2 variable schema; incompatible templates trigger warning (exit code 2)"
@@ -79,7 +80,7 @@
 
 - [x] Success criteria are measurable and scoped
   - ✓ SC-001 now scoped: "20-task playbook (without complex conditionals) in under 2 seconds"
-  - ✓ SC-007 updated: includes "role dependencies discovered via role includes"
+  - ✓ SC-007 updated: accounts for automatic discovery and manifest filtering
 
 ## Feature Readiness
 
@@ -90,10 +91,10 @@
 - [x] User scenarios cover primary flows and edge cases
   - ✓ US1 (unannotated playbook with skeleton output)
   - ✓ US2 (annotated playbooks at playbook and task levels)
-  - ✓ US3 (batch processing with semantic role discovery)
+  - ✓ US3 (batch processing with directory-first discovery and manifest override)
   - ✓ US4 (complex flowchart rendering with conditionals)
   - ✓ US5 (error handling including template incompatibility)
-  - ✓ Edge cases expanded to 9 items (added circular dependency case)
+  - ✓ Edge cases expanded: manifest validation, invalid discovery patterns
 
 - [x] Feature meets measurable outcomes defined in Success Criteria
   - ✓ SC-001 now realistic: scoped to playbooks "without complex conditionals"
@@ -125,8 +126,9 @@
   - ✓ CI pipelines can check exit code 2 for warnings
 
 - [x] Aligns with **Convention Over Configuration** principle
-  - ✓ Default behavior: automatic role discovery, semantic index generation
-  - ✓ No configuration required for basic usage
+  - ✓ Default behavior: zero-config directory-first discovery (recursive scan)
+  - ✓ No configuration required for basic usage (anodyse ./playbooks --output ./docs)
+  - ✓ Optional .anodyse.yml manifest for explicit control when needed
   - ✓ User templates optional, sensible defaults provided
 
 - [x] Aligns with **Code Standards** principle
@@ -135,8 +137,9 @@
   - ✓ Testing: edge cases define test scenarios
 
 - [x] Aligns with **Architecture Rules** principle
-  - ✓ Separation of concerns: Stage 1 (parser with semantic role discovery), Stage 2 (extractor at all levels), Stage 3 (renderer with conditional flowcharts)
+  - ✓ Separation of concerns: Stage 1 (parser with directory-first discovery), Stage 2 (extractor at all levels), Stage 3 (renderer with conditional flowcharts)
   - ✓ Dataclass returns: PlaybookData/RoleData specified
+  - ✓ Manifest handling: optional .anodyse.yml with schema validation
   - ✓ Template organization: user-overridable with validation
 
 - [x] Aligns with **Output Rules** principle
@@ -148,7 +151,7 @@
 - [x] Aligns with **Testing Requirements** principle
   - ✓ Test coverage ≥80% (SC-010)
   - ✓ Unit tests needed for annotation extraction at multiple levels
-  - ✓ Integration tests for semantic role discovery
+  - ✓ Integration tests for directory-first discovery and manifest filtering
   - ✓ Renderer tests for complex flowchart generation
 
 ## Specification Readiness
@@ -164,7 +167,9 @@
 **Quality Gates**: All passed post-clarification.
 
 **Next Step**: Run `/speckit.plan` to:
-- Validate technical feasibility of semantic role discovery and complex flowchart rendering
+- Validate technical feasibility of directory-first discovery and complex flowchart rendering
+- Design recursive directory scanner with hosts:/tasks/main.yml detection
+- Design .anodyse.yml manifest schema with include/exclude validation
 - Design detailed data models for annotation store (playbook, task, role levels)
 - Design Mermaid flowchart algorithm for conditional branches and handlers
 - Create comprehensive implementation roadmap
