@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-03-01
 
 ## Active Technologies
+- Python 3.11+ + `click`, `ruamel.yaml`, `jinja2` (002-task-comments-todos)
+- N/A (filesystem input/output only) (002-task-comments-todos)
 
 - Python 3.11+ + click (CLI framework), ruamel.yaml (YAML parsing with comment preservation), jinja2 (template rendering) (001-core-pipeline)
 
@@ -22,6 +24,7 @@ cd src; pytest; ruff check .
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 002-task-comments-todos: Added Python 3.11+ + `click`, `ruamel.yaml`, `jinja2`
 
 - 001-core-pipeline: Added Python 3.11+ + click (CLI framework), ruamel.yaml (YAML parsing with comment preservation), jinja2 (template rendering)
 

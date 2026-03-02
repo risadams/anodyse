@@ -21,11 +21,12 @@ samples/
 **File:** `deploy-nginx.yml`
 
 Demonstrates:
-- Basic playbook structure with annotations
-- Task-level documentation
-- Parameters and warnings
-- Handler configuration
-- Conditional execution
+- Task-level annotations (@task.description, @task.note, @task.warning, @task.tag)
+- File-level and task-level TODO/FIXME tracking with author attribution
+- Block prose comments for task context
+- Inline prose comments on task definitions
+- Handler configuration with annotations
+- Conditional execution with security tags
 
 Deploy an NGINX web server with SSL support:
 ```bash
@@ -36,11 +37,13 @@ anodyse samples/web-server/deploy-nginx.yml --output docs/
 **File:** `deploy-postgresql.yml`
 
 Demonstrates:
+- Comprehensive task-level documentation
+- Security-focused warnings and notes
+- TODO markers for planned improvements
 - Database installation and configuration
-- Security considerations
 - User and database creation
-- Password management warnings
-- Tags for categorization
+- Password management warnings with @task.warning
+- Multiple categorization tags per task
 
 Generate PostgreSQL deployment docs:
 ```bash
@@ -66,11 +69,13 @@ anodyse samples/docker-app/deploy-containers.yml --output docs/ --graph
 **File:** `harden-system.yml`
 
 Demonstrates:
-- Security best practices
-- Multiple security domains
-- Critical system modifications
-- Compliance-oriented documentation
-- Extensive parameter usage
+- Security-focused task annotations with multiple warnings
+- Compliance and audit categorization tags
+- TODO/FIXME markers for security improvements
+- Block prose explaining complex security controls
+- Critical system modifications documentation
+- CIS benchmark implementation notes
+- Extensive parameter usage with security context
 
 Generate security hardening documentation:
 ```bash
@@ -81,11 +86,14 @@ anodyse samples/security-hardening/ --output docs/
 **File:** `deploy-app-stack.yml`
 
 Demonstrates:
-- Multi-play playbooks
-- Host group targeting
-- Inter-play dependencies
-- Complex deployment workflows
-- Load balancer + app servers + database
+- Multi-play playbooks with task annotations
+- TODO markers for deployment enhancements
+- Inline comments on complex configurations
+- Host group targeting with security notes
+- Inter-play dependencies documentation
+- Complex deployment workflows with warnings
+- Load balancer + app servers + database stack
+- Task categorization with multiple tags
 
 Create comprehensive stack documentation:
 ```bash
@@ -168,12 +176,86 @@ pytest tests/ -v
 
 These playbooks demonstrate all supported Anodyse annotations:
 
-- **@title**: Playbook and task titles
-- **@description**: Detailed descriptions
-- **@param**: Parameter documentation
+**Playbook-Level Annotations:**
+- **@title**: Playbook title
+- **@description**: Playbook description
+- **@param**: Parameter documentation with defaults
 - **@warning**: Important warnings and caveats
-- **@example**: Usage examples
-- **@tag**: Categorization tags
+- **@example**: Usage examples with command-line syntax
+- **@tag**: Categorization tags for playbook classification
+
+**Task-Level Annotations (Feature 002):**
+- **@task.description**: Task-specific description (replaces generic name)
+- **@task.note**: Repeatable implementation notes and context
+- **@task.warning**: Repeatable warnings for task execution
+- **@task.tag**: Repeatable categorization tags for tasks
+
+**Plain Prose Comments (Feature 002):**
+- **Block comments**: Multi-line prose before task definition (fallback description)
+- **Inline comments**: Comments on first-key line (rendered beneath task row)
+
+**TODO/FIXME Tracking (Feature 002):**
+- **File-level**: `# TODO: description` or `# FIXME: description` in playbook header
+- **Task-level**: `# TODO: description` or `# FIXME: description` in task block comments
+- **Author attribution**: `# TODO(username): description` or `# FIXME(username): description`
+
+### Annotation Syntax Examples
+
+```yaml
+# Playbook-level annotations
+# @title NGINX Web Server Deployment
+# @description Deploy and configure NGINX with SSL/TLS support
+# @param site_name Domain name for the website
+# @warning SSL certificates must be provided separately
+# @example ansible-playbook deploy-nginx.yml -e "site_name=example.com"
+# @tag web-server
+# @tag ssl
+# TODO: Add Let's Encrypt certificate automation
+# TODO(ops): Implement rate limiting configuration
+
+---
+- name: Deploy NGINX
+  hosts: webservers
+  tasks:
+    # Block prose comment explaining the task context.
+    # This fallback description is used when no @task.description exists.
+    # @task.description: Install NGINX web server from distribution repositories
+    # @task.note: Uses distro's default version for stability
+    # @task.warning: Package repository must be configured first
+    # @task.tag: install
+    # @task.tag: web-server
+    # TODO(devops): Consider using official NGINX repository
+    - name: Install nginx  # inline comment appears beneath task row
+      package:
+        name: nginx
+        state: present
+```
+
+## Feature Showcase
+
+### Task Summary Tables
+When tasks include @task.* annotations, Anodyse generates a comprehensive task summary table with columns:
+- **Task** (name/module)
+- **Description** (@task.description or block prose fallback)
+- **Notes** (all @task.note entries)
+- **Warnings** (all @task.warning entries)
+- **Tags** (all @task.tag entries)
+
+Inline prose comments appear beneath their corresponding task row.
+
+### TODO/FIXME Section
+When TODO or FIXME markers are detected, Anodyse generates a dedicated section with:
+- **Location** (File or Task name)
+- **Author** (from parenthetical attribution or "—")
+- **TODO** (the marker text)
+
+File-level TODOs appear at the top, followed by task-level TODOs.
+
+### Index TODO Indicators
+The generated index.md shows:
+- ⚠️ prefix for playbooks/roles with TODOs
+- TODO count in dedicated column
+- Link to TODO section anchor in documentation
 
 ## Best Practices Demonstrated
 

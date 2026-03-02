@@ -1,14 +1,14 @@
 # Documentation Index
 
-{% if entries %}
-| Title | Type | Tags | Description |
-|-------|------|------|-------------|
-{% for entry in entries %}
-| [{{ entry.title }}]({{ entry.output_filename }}) | {{ entry.item_type }} | {% if entry.doc_tags %}{{ entry.doc_tags | join(", ") }}{% else %}—{% endif %} | {{ entry.description or "Undocumented" }} |
-{% endfor %}
-{% else %}
+{% if entries -%}
+| Title | Type | Tags | TODOs | Description |
+|-------|------|------|-------|-------------|
+{% for entry in entries -%}
+| {% if entry.has_todos %}⚠️ {% endif %}[{{ entry.title }}]({{ entry.output_filename }}{% if entry.has_todos %}#todos{% endif %}) | {{ entry.item_type }} | {% if entry.doc_tags %}{{ entry.doc_tags | join(", ") }}{% else %}—{% endif %} | {% if entry.has_todos %}{{ entry.todo_count }}{% else %}—{% endif %} | {{ entry.description or "Undocumented" }} |
+{% endfor -%}
+{% else -%}
 *No playbooks or roles documented.*
-{% endif %}
+{% endif -%}
 
 ---
 

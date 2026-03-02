@@ -34,42 +34,22 @@ Configure PostgreSQL database cluster with streaming replication and high availa
 No usage examples provided.
 
 
+
+
 ## Tasks
 
 
 
-- **Install PostgreSQL packages** (*package*)
-  
-  
-
-- **Initialize PostgreSQL database** (*command*)
-  
-  
-
-- **Configure pg_hba for replication** (*postgresql_pg_hba*)
-  
-  
-
-- **Deploy postgresql.conf** (*template*)
-  
-  
-
-- **Create replication user** (*postgresql_user*)
-  Condition: `inventory_hostname == groups['database_servers'][0]`
-  
-
-- **Configure standby servers** (*template*)
-  Condition: `inventory_hostname != groups['database_servers'][0]`
-  
-
-- **Create replication slots** (*postgresql_slot*)
-  Condition: `inventory_hostname == groups['database_servers'][0]`
-  Loop: `{{ groups['database_servers'][1:] }}`
-
-- **Enable PostgreSQL service** (*systemd*)
-  
-  
-
+| Task | Description | Notes | Warnings | Tags |
+|------|-------------|-------|----------|------|
+| **Install PostgreSQL packages**<br>*package* |  |  |  | i, n, s, t, a, l, l |
+| **Initialize PostgreSQL database**<br>*command* | @title Initialize database cluster @description Create PostgreSQL data directory and initialize database |  |  |  |
+| **Configure pg_hba for replication**<br>*postgresql_pg_hba* | @title Configure PostgreSQL authentication @description Set up pg_hba.conf for replication and application access @param replication_subnet CIDR subnet allowed for replication connections |  |  |  |
+| **Deploy postgresql.conf**<br>*template* | @title Deploy PostgreSQL configuration @description Apply custom postgresql.conf with performance tuning and replication settings |  |  |  |
+| **Create replication user**<br>*postgresql_user* | @title Create replication user @description Set up dedicated user for streaming replication |  |  |  |
+| **Configure standby servers**<br>*template* | @title Configure streaming replication @description Set up standby servers with recovery configuration |  |  |  |
+| **Create replication slots**<br>*postgresql_slot* | @title Setup replication slots @description Create replication slots on primary for each standby |  |  |  |
+| **Enable PostgreSQL service**<br>*systemd* | @title Enable and start PostgreSQL service @description Ensure PostgreSQL is running and enabled at boot |  |  |  |
 
 
 ## Execution Flow

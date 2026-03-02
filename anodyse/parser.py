@@ -1,5 +1,6 @@
 """YAML parser for Ansible playbooks and roles."""
 
+import re
 from pathlib import Path
 from typing import Any, Literal
 
@@ -32,6 +33,68 @@ _TASK_META_KEYS = {
     "become_user",
     "no_log",
 }
+
+_TASK_HEADER_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*$")  # Indented tasks only
+_INLINE_COMMENT_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*?#\s*(.+)\s*$")  # Inline comments
+
+
+def _extract_task_comments_from_text(source_text: str) -> list[tuple[list[str], str | None]]:
+    """Extract task block/inline comments from YAML source text in task order."""
+    lines = source_text.splitlines()
+    extracted: list[tuple[list[str], str | None]] = []
+
+    for index, line in enumerate(lines):
+        header_match = _TASK_HEADER_RE.match(line)
+        if not header_match:
+            continue
+
+        # Inline comment on the task header line.
+        inline_match = _INLINE_COMMENT_RE.match(line)
+        inline_comment = inline_match.group(1).strip() if inline_match else None
+
+        # Walk upwards collecting attached comment/blank lines.
+        block_lines: list[str] = []
+        back = index - 1
+        while back >= 0:
+            candidate = lines[back]
+            stripped = candidate.strip()
+            if stripped.startswith("#") or stripped == "":
+                block_lines.append(candidate)
+                back -= 1
+                continue
+            break
+
+        block_lines.reverse()
+
+        # Filter block_lines to check if there's any actual comment content
+        # (not just blank lines). If only blanks, clear the list.
+        has_comment = any(line.strip().startswith("#") for line in block_lines)
+        if not has_comment:
+            block_lines = []
+
+        extracted.append((block_lines, inline_comment))
+
+    return extracted
+
+
+def _attach_task_comments_from_text(tasks: list[TaskData], source_text: str) -> None:
+    """Attach raw block/inline comments to TaskData objects for extractor use."""
+    # Initialize default attributes for all tasks so downstream code can rely
+    # on their presence even when no comments are extracted for a task.
+    for task in tasks:
+        setattr(task, "_raw_block_comments", [])
+        setattr(task, "_raw_inline_comment", None)
+
+    extracted = _extract_task_comments_from_text(source_text)
+
+    # Overwrite defaults for tasks where we actually extracted comments,
+    # up to the shorter of the two sequences to avoid index errors.
+    limit = min(len(tasks), len(extracted))
+    for index in range(limit):
+        block_comments, inline_comment = extracted[index]
+        task = tasks[index]
+        setattr(task, "_raw_block_comments", block_comments)
+        setattr(task, "_raw_inline_comment", inline_comment)
 
 
 def detect_type(path: str) -> Literal["playbook", "role", "unknown"]:
@@ -107,8 +170,8 @@ def parse_playbook(path: str) -> PlaybookData:
     try:
         yaml = YAML()
         yaml.preserve_quotes = True
-        with open(file_path, encoding="utf-8") as f:
-            content = yaml.load(f)
+        source_text = file_path.read_text(encoding="utf-8")
+        content = yaml.load(source_text)
     except Exception as e:
         raise ParseError(f"Failed to parse YAML file {path}: {e}") from e
 
@@ -133,6 +196,18 @@ def parse_playbook(path: str) -> PlaybookData:
     tasks = _parse_tasks(play.get("tasks", []) or [])
     post_tasks = _parse_tasks(play.get("post_tasks", []) or [])
     handlers = _parse_tasks(play.get("handlers", []) or [])
+
+    # Attach task-comment extraction from YAML source text.
+    # We must process all task sections in a single pass so that comments
+    # are matched to tasks in global playbook order (pre_tasks, tasks,
+    # post_tasks, handlers), rather than restarting from the top of the
+    # file for each section.
+    all_tasks: list[TaskData] = []
+    all_tasks.extend(pre_tasks)
+    all_tasks.extend(tasks)
+    all_tasks.extend(post_tasks)
+    all_tasks.extend(handlers)
+    _attach_task_comments_from_text(all_tasks, source_text)
 
     # Extract roles referenced
     roles_list = []
@@ -193,9 +268,12 @@ def parse_role(path: str) -> RoleData:
         yaml.preserve_quotes = True
 
         # Load tasks (required)
-        with open(tasks_file, encoding="utf-8") as f:
-            tasks_content = yaml.load(f)
+        tasks_source_text = tasks_file.read_text(encoding="utf-8")
+        tasks_content = yaml.load(tasks_source_text)
         tasks = _parse_tasks(tasks_content or [])
+
+        # Attach task-comment extraction from YAML source text
+        _attach_task_comments_from_text(tasks, tasks_source_text)
 
         # Load defaults (optional)
         defaults_file = role_path / "defaults" / "main.yml"

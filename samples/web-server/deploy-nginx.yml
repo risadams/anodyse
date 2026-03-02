@@ -7,6 +7,12 @@
 # @warning Ensure firewall rules allow traffic on specified ports
 # @warning SSL certificates must be provided separately
 # @example ansible-playbook deploy-nginx.yml -e "site_name=example.com enable_ssl=true"
+# @tag web-server
+# @tag nginx
+# @tag ssl
+# TODO: Add support for Let's Encrypt certificate automation
+# TODO(ops): Implement rate limiting configuration
+# FIXME: HTTP/2 configuration needs performance tuning
 
 ---
 - name: Deploy NGINX Web Server
@@ -21,24 +27,29 @@
     document_root: /var/www/html
     
   tasks:
-    # @title Update package cache
-    # @description Ensure APT package cache is up-to-date before installation
+    # @task.description: Ensure APT package cache is up-to-date before installation
+    # @task.note: Cache valid for 1 hour to avoid excessive updates
+    # @task.tag: setup
     - name: Update apt cache
       apt:
         update_cache: yes
         cache_valid_time: 3600
       when: ansible_os_family == "Debian"
       
-    # @title Install NGINX package
-    # @description Install NGINX web server from distribution repositories
+    # @task.description: Install NGINX web server from distribution repositories
+    # @task.note: Uses the distro's default NGINX version for stability
+    # @task.tag: install
+    # TODO: Consider using official NGINX repository for latest stable version
     - name: Install nginx
       package:
         name: nginx
         state: present
         
-    # @title Create document root directory
-    # @description Ensure the web root directory exists with proper permissions
-    # @param document_root Base directory for serving web content
+    # This ensures the web content directory is properly initialized.
+    # Permissions are set for the www-data user to serve content securely.
+    # @task.description: Ensure the web root directory exists with proper permissions
+    # @task.warning: Changing document_root for existing sites may break content paths
+    # @task.tag: filesystem
     - name: Create document root
       file:
         path: "{{ document_root }}"
@@ -47,10 +58,12 @@
         group: www-data
         mode: '0755'
         
-    # @title Deploy site configuration
-    # @description Configure NGINX virtual host for the specified site
-    # @warning This will override any existing configuration for the same site
-    - name: Configure nginx site
+    # @task.description: Configure NGINX virtual host for the specified site
+    # @task.warning: This will override any existing configuration for the same site
+    # @task.note: Template should be customized for specific site requirements
+    # @task.tag: configuration
+    # TODO(devops): Add validation step before deploying configuration
+    - name: Configure nginx site  # uses Jinja2 template for flexibility
       template:
         src: nginx-site.conf.j2
         dest: "/etc/nginx/sites-available/{{ site_name }}"
@@ -59,8 +72,9 @@
         mode: '0644'
       notify: Reload nginx
       
-    # @title Enable site configuration
-    # @description Create symbolic link to enable the site configuration
+    # @task.description: Create symbolic link to enable the site configuration
+    # @task.note: NGINX uses sites-available/sites-enabled pattern for config management
+    # @task.tag: configuration
     - name: Enable nginx site
       file:
         src: "/etc/nginx/sites-available/{{ site_name }}"
@@ -68,17 +82,18 @@
         state: link
       notify: Reload nginx
       
-    # @title Start and enable NGINX service
-    # @description Ensure NGINX is running and starts on boot
+    # @task.description: Ensure NGINX is running and starts on boot
+    # @task.tag: service
     - name: Start nginx service
       service:
         name: nginx
         state: started
         enabled: yes
         
-    # @title Configure firewall for HTTP
-    # @description Open firewall port for HTTP traffic
-    # @param nginx_port HTTP port to open
+    # @task.description: Open firewall port for HTTP traffic
+    # @task.warning: Ensure this aligns with security policies before opening ports
+    # @task.tag: firewall
+    # @task.tag: security
     - name: Allow HTTP traffic
       ufw:
         rule: allow
@@ -86,10 +101,12 @@
         proto: tcp
       when: ansible_os_family == "Debian"
       
-    # @title Configure firewall for HTTPS
-    # @description Open firewall port for HTTPS traffic
-    # @param nginx_ssl_port HTTPS port to open
-    # @warning Only applies when enable_ssl is true
+    # @task.description: Open firewall port for HTTPS traffic
+    # @task.warning: Only applies when enable_ssl is true
+    # @task.note: Port 443 is the standard for HTTPS traffic
+    # @task.tag: firewall
+    # @task.tag: security
+    # @task.tag: ssl
     - name: Allow HTTPS traffic
       ufw:
         rule: allow
@@ -100,9 +117,10 @@
         - enable_ssl | bool
         
   handlers:
-    # @title Reload NGINX configuration
-    # @description Gracefully reload NGINX to apply configuration changes
-    - name: Reload nginx
+    # @task.description: Gracefully reload NGINX to apply configuration changes
+    # @task.note: Reload is preferred over restart to avoid connection drops
+    # @task.tag: service
+    - name: Reload nginx  # reload preserves active connections
       service:
         name: nginx
         state: reloaded

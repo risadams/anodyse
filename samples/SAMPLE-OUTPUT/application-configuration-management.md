@@ -44,6 +44,8 @@ ansible-playbook configure-app.yml -e "environment=development enable_debug=true
 
 
 
+
+
 ## Tasks
 
 ### Pre-Tasks
@@ -57,67 +59,51 @@ No pre-tasks defined.
 - **Create configuration directory** (*file*)
   
   
-
 - **Deploy application.yml configuration** (*template*)
   
   
-
 - **Deploy database configuration** (*template*)
   
   
-
 - **Deploy logging configuration** (*template*)
   
   
-
 - **Deploy cache configuration** (*template*)
   
   
-
 - **Deploy feature flags** (*template*)
   
   
-
 - **Deploy security configuration** (*template*)
   
   
-
 - **Deploy nginx proxy configuration** (*template*)
   
   
-
 - **Deploy environment variables** (*template*)
   
   
-
 - **Deploy welcome email template** (*template*)
   
   
-
 - **Deploy password reset email template** (*template*)
   
   
-
 - **Deploy metrics configuration** (*template*)
   Condition: `metrics_enabled | bool`
   
-
 - **Validate YAML configurations** (*command*)
   
   Loop: `['{{ config_base_path }}/application.yml', '{{ config_base_path }}/metrics.yml']`
-
 - **Validate JSON configurations** (*command*)
   
   Loop: `['{{ config_base_path }}/feature-flags.json']`
-
 - **Set configuration directory ownership** (*file*)
   
   
-
 - **Create configuration backup** (*archive*)
   
   
-
 
 
 ### Post-Tasks

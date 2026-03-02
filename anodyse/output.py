@@ -1,7 +1,8 @@
 """Output file handler for rendered Markdown content."""
 
-import re
 from pathlib import Path
+
+from .utils import slugify
 
 
 def write_output(
@@ -28,7 +29,7 @@ def write_output(
     path = Path(output_path)
 
     # Slugify the filename
-    stem = _slugify(path.stem)
+    stem = slugify(path.stem)
     slugified_path = path.parent / f"{stem}{path.suffix}"
 
     # Create output directory if it doesn't exist
@@ -49,35 +50,3 @@ def write_output(
         slugified_path.write_text(content, encoding="utf-8")
     except OSError as e:
         raise OSError(f"Failed to write output file: {e}") from e
-
-
-def _slugify(text: str) -> str:
-    """Convert text to a slug suitable for filenames.
-
-    - Convert to lowercase
-    - Replace spaces with hyphens
-    - Remove special characters (keep only alphanumerics and hyphens)
-    - Collapse multiple hyphens into single
-
-    Args:
-        text: Text to slugify
-
-    Returns:
-        Slugified string
-    """
-    # Convert to lowercase
-    slug = text.lower()
-
-    # Replace spaces and underscores with hyphens
-    slug = re.sub(r"[\s_]+", "-", slug)
-
-    # Remove all characters except alphanumerics and hyphens
-    slug = re.sub(r"[^a-z0-9-]", "", slug)
-
-    # Collapse multiple hyphens
-    slug = re.sub(r"-+", "-", slug)
-
-    # Remove leading/trailing hyphens
-    slug = slug.strip("-")
-
-    return slug or "untitled"

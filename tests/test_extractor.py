@@ -122,6 +122,179 @@ class TestExtractPlaybook:
         assert "critical" in result.doc_tags
 
 
+class TestExtractTaskAnnotations:
+    """Tests for task-level annotation extraction (T012)."""
+
+    @pytest.fixture
+    def playbook_task_annotated_path(self):
+        """Path to task-annotated playbook fixture."""
+        return "tests/fixtures/playbook_task_annotated.yml"
+
+    def test_extract_task_annotation_class_a(self, playbook_task_annotated_path):
+        """Test extraction of Class A task annotations (@task.description|note|warning|tag)."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # Task 0 has @task annotations
+        task0 = result.tasks[0]
+        assert task0.description is not None, (
+            "Task 0 should have description from @task.description"
+        )
+        assert len(task0.notes) > 0, "Task 0 should have notes from @task.note"
+        assert len(task0.warnings) > 0, "Task 0 should have warnings from @task.warning"
+        # Tags might be in task.tags or doc_tags depending on implementation
+        # For now, just check that at least one is populated
+        assert len(task0.tags) > 0, "Task 0 should have tags from @task.tag"
+
+    def test_extract_task_no_cross_contamination_between_tasks(self, playbook_task_annotated_path):
+        """Test that task annotations don't bleed across task boundaries."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # Task 0 has annotations
+        task0 = result.tasks[0]
+        assert task0.description is not None
+
+        # Task 3 is unannotated - should not inherit task 0's annotations
+        task3 = result.tasks[3]
+        # Task 3 might have fallback description from task name, but should not have
+        # the same description, notes, or warnings as task 0
+        assert task3.description != task0.description, (
+            "Task 3 should not inherit task 0's description"
+        )
+        assert len(task3.notes) == 0, "Task 3 should not inherit task 0's notes"
+        assert len(task3.warnings) == 0, "Task 3 should not inherit task 0's warnings"
+
+
+class TestExtractTaskProse:
+    """Tests for task prose comment extraction (T020)."""
+
+    @pytest.fixture
+    def playbook_task_annotated_path(self):
+        """Path to task-annotated playbook fixture."""
+        return "tests/fixtures/playbook_task_annotated.yml"
+
+    def test_extract_task_prose_block(self, playbook_task_annotated_path):
+        """Test extraction of block prose comments into task.block_comment."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # Task 1 has prose block comment
+        task1 = result.tasks[1]
+        assert task1.block_comment is not None, "Task 1 should have block_comment from prose"
+        assert len(task1.block_comment) > 0
+
+        # Task 0 has annotations and shouldn't have block_comment in it
+        task0 = result.tasks[0]
+        if task0.block_comment:
+            # Should not contain annotation syntax
+            assert "@task." not in task0.block_comment, (
+                "block_comment should not contain annotation syntax"
+            )
+
+    def test_extract_task_inline_comment(self, playbook_task_annotated_path):
+        """Test extraction of inline prose comments into task.inline_comment."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # Task 0 has inline comment
+        task0 = result.tasks[0]
+        assert task0.inline_comment is not None, "Task 0 should have inline_comment"
+        assert len(task0.inline_comment) > 0
+
+        # Task 2 has inline comment
+        task2 = result.tasks[2]
+        assert task2.inline_comment is not None, "Task 2 should have inline_comment"
+        assert len(task2.inline_comment) > 0
+
+        # Task 3 has no inline comment
+        task3 = result.tasks[3]
+        assert task3.inline_comment is None or len(task3.inline_comment) == 0, (
+            "Task 3 should not have inline_comment"
+        )
+
+
+class TestExtractTodos:
+    """Tests for TODO/FIXME extraction (T027)."""
+
+    @pytest.fixture
+    def playbook_task_annotated_path(self):
+        """Path to task-annotated playbook fixture."""
+        return "tests/fixtures/playbook_task_annotated.yml"
+
+    def test_extract_task_todo_in_block(self, playbook_task_annotated_path):
+        """Test extraction of TODO/FIXME from task block comments."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # Task 0 has TODO in block comments
+        task0 = result.tasks[0]
+        assert len(task0.todos) > 0, "Task 0 should have TODOs from block comments"
+
+        # Check that TODO has source="task"
+        for todo in task0.todos:
+            assert todo.source == "task", "Block TODOs should have source='task'"
+
+    def test_extract_task_inline_todo_is_prose_not_structured(self, playbook_task_annotated_path):
+        """Test that inline TODOs are prose, not structured TodoItems."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # Task 2 has inline comment (which might contain TODO text)
+        # But inline comments should never create structured TodoItems
+        task2 = result.tasks[2]
+
+        # If task 2 has inline_comment, it should be preserved as prose
+        if task2.inline_comment:
+            # Even if it contains "TODO", it should not be in task2.todos
+            assert len(task2.todos) == 0, "Inline TODOs should not create structured TodoItems"
+
+    def test_extract_file_level_todo_source_is_file(self, playbook_task_annotated_path):
+        """Test that file-level TODOs have source='file'."""
+        data = parse_playbook(playbook_task_annotated_path)
+        source = open(playbook_task_annotated_path).read()
+
+        result = extract(data, source)
+
+        # File has TODO/FIXME comments at the top
+        if len(result.todos) > 0:
+            for todo in result.todos:
+                assert todo.source == "file", "File-level TODOs should have source='file'"
+
+    def test_extract_no_todos_empty_list(self):
+        """Test that tasks without TODOs have empty todos list."""
+        # Create minimal playbook data
+        from pathlib import Path
+
+        from anodyse.models import PlaybookData, TaskData
+
+        task = TaskData(name="Test", module="command", args={})
+        data = PlaybookData(
+            source_path=Path("test.yml"),
+            title=None,
+            description=None,
+            hosts="localhost",
+            tasks=[task],
+        )
+
+        result = extract(data, "# No TODOs here\n- hosts: localhost")
+
+        assert len(result.tasks[0].todos) == 0, "Task without TODOs should have empty todos list"
+        assert len(result.todos) == 0, "Playbook without TODOs should have empty todos list"
+
+
 class TestExtractRole:
     """Tests for extract function with role data."""
 

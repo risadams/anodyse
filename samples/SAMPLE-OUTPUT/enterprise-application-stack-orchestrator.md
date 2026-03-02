@@ -48,15 +48,19 @@ ansible-playbook site.yml -e "environment=staging app_version=2.1.0-rc1 enable_m
 
 
 
+
+
 ## Tasks
 
 ### Pre-Tasks
 
 
 - **Verify minimum system requirements** (*assert*)
-
+  
+  
 - **Test inter-node connectivity** (*wait_for*)
-
+  Condition: `inventory_hostname != item`
+  Loop: `{{ groups['database_servers'] }}`
 
 
 ### Main Tasks

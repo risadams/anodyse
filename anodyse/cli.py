@@ -165,6 +165,17 @@ def main(
                     # First line only
                     description = data.description.split("\n")[0]
 
+                # Calculate TODO counts (T032)
+                todo_count = len(data.todos)
+                if hasattr(data, "tasks"):
+                    todo_count += sum(len(t.todos) for t in data.tasks)
+                if hasattr(data, "pre_tasks"):
+                    todo_count += sum(len(t.todos) for t in data.pre_tasks)
+                if hasattr(data, "post_tasks"):
+                    todo_count += sum(len(t.todos) for t in data.post_tasks)
+                if hasattr(data, "handlers"):
+                    todo_count += sum(len(t.todos) for t in data.handlers)
+
                 entry = IndexEntry(
                     title=data.title or Path(str(data.source_path)).stem,
                     source_path=data.source_path,
@@ -172,6 +183,8 @@ def main(
                     description=description,
                     doc_tags=data.doc_tags,
                     item_type=item_type,
+                    has_todos=(todo_count > 0),
+                    todo_count=todo_count,
                 )
                 index_entries.append(entry)
 

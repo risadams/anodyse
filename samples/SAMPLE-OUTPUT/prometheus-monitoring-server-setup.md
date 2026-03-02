@@ -26,6 +26,8 @@ No warnings documented.
 No usage examples provided.
 
 
+
+
 ## Tasks
 
 
@@ -33,47 +35,36 @@ No usage examples provided.
 - **Create prometheus user** (*user*)
   
   
-
 - **Download prometheus** (*get_url*)
   
   
-
 - **Extract prometheus** (*unarchive*)
   
   
-
 - **Create prometheus directories** (*file*)
   
   Loop: `['/etc/prometheus', '/etc/prometheus/rules.d', '/etc/prometheus/targets.d', '/var/lib/prometheus', '/var/log/prometheus']`
-
 - **Deploy prometheus configuration** (*template*)
   
   
-
 - **Deploy alert rules** (*template*)
   
   
-
 - **Deploy recording rules** (*template*)
   
   
-
 - **Deploy prometheus systemd service** (*template*)
   
   
-
 - **Start prometheus service** (*systemd*)
   
   
-
 - **Deploy web authentication config** (*template*)
   Condition: `enable_auth | default(false) | bool`
   
-
 - **Open prometheus port** (*firewalld*)
   Condition: `ansible_os_family == "RedHat"`
   
-
 
 
 ## Execution Flow
