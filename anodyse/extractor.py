@@ -204,7 +204,7 @@ def extract_task_annotations(task: TaskData) -> None:
     task.block_comment = ""
     task.inline_comment = ""
     task.todos = []
-    
+
     # Process block comments if they exist
     if hasattr(task, "_raw_block_comments") and task._raw_block_comments:
         block_annotations = {}

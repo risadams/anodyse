@@ -34,8 +34,8 @@ _TASK_META_KEYS = {
     "no_log",
 }
 
-_TASK_HEADER_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*$")  # Match indented - <key>: (tasks only, not plays)
-_INLINE_COMMENT_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*?#\s*(.+)\s*$")  # Match inline comment
+_TASK_HEADER_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*$")  # Indented tasks only
+_INLINE_COMMENT_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*?#\s*(.+)\s*$")  # Inline comments
 
 
 def _extract_task_comments_from_text(source_text: str) -> list[tuple[list[str], str | None]]:
@@ -84,9 +84,9 @@ def _attach_task_comments_from_text(tasks: list[TaskData], source_text: str) -> 
     for task in tasks:
         setattr(task, "_raw_block_comments", [])
         setattr(task, "_raw_inline_comment", None)
-    
+
     extracted = _extract_task_comments_from_text(source_text)
-    
+
     # Overwrite defaults for tasks where we actually extracted comments,
     # up to the shorter of the two sequences to avoid index errors.
     limit = min(len(tasks), len(extracted))
