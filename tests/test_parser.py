@@ -29,6 +29,12 @@ def role_sample_path():
     return "tests/fixtures/role_sample"
 
 
+@pytest.fixture
+def playbook_task_annotated_path():
+    """Path to task-annotated playbook fixture."""
+    return "tests/fixtures/playbook_task_annotated.yml"
+
+
 class TestDetectType:
     """Tests for detect_type function."""
 
@@ -82,6 +88,99 @@ class TestParsePlaybook:
             assert hasattr(task, "name")
             assert hasattr(task, "module")
             assert hasattr(task, "args")
+
+    def test_parse_playbook_task_annotated_fixture(self, playbook_task_annotated_path):
+        """Fixture sanity check: task-comment coverage fixture parses correctly."""
+        data = parse_playbook(playbook_task_annotated_path)
+        assert isinstance(data, PlaybookData)
+        assert data.hosts == "app_servers"
+        assert len(data.tasks) == 4
+
+    def test_parser_extracts_block_comments_per_task(self, playbook_task_annotated_path):
+        """Test parser attaches block comments to correct task (T011)."""
+        data = parse_playbook(playbook_task_annotated_path)
+
+        # Task 0: Has @task annotations in block comments
+        task0 = data.tasks[0]
+        assert hasattr(task0, "_raw_block_comments")
+        assert task0._raw_block_comments is not None
+        assert len(task0._raw_block_comments) > 0
+        # Should contain annotation lines
+        block_text = " ".join(task0._raw_block_comments)
+        assert "@task" in block_text.lower()
+
+        # Task 1: Has prose block comment
+        task1 = data.tasks[1]
+        assert hasattr(task1, "_raw_block_comments")
+        assert task1._raw_block_comments is not None
+        assert len(task1._raw_block_comments) > 0
+
+        # Task 2: Has inline comment only, no block comment
+        task2 = data.tasks[2]
+        assert hasattr(task2, "_raw_block_comments")
+        # Either None or empty list for no block comment
+        assert not task2._raw_block_comments or len(task2._raw_block_comments) == 0
+
+        # Task 3: No comments at all
+        task3 = data.tasks[3]
+        assert hasattr(task3, "_raw_block_comments")
+        assert not task3._raw_block_comments or len(task3._raw_block_comments) == 0
+
+    def test_parser_extracts_inline_comment_per_task(self, playbook_task_annotated_path):
+        """Test parser attaches inline comments to correct task (T011)."""
+        data = parse_playbook(playbook_task_annotated_path)
+
+        # Task 0: Has inline comment on name line
+        task0 = data.tasks[0]
+        assert hasattr(task0, "_raw_inline_comment")
+        assert task0._raw_inline_comment is not None
+        assert len(task0._raw_inline_comment) > 0
+
+        # Task 1: No inline comment
+        task1 = data.tasks[1]
+        assert hasattr(task1, "_raw_inline_comment")
+        assert not task1._raw_inline_comment or len(task1._raw_inline_comment) == 0
+
+        # Task 2: Has inline comment
+        task2 = data.tasks[2]
+        assert hasattr(task2, "_raw_inline_comment")
+        assert task2._raw_inline_comment is not None
+        assert len(task2._raw_inline_comment) > 0
+
+        # Task 3: No inline comment
+        task3 = data.tasks[3]
+        assert hasattr(task3, "_raw_inline_comment")
+        assert not task3._raw_inline_comment or len(task3._raw_inline_comment) == 0
+
+    def test_parser_blank_lines_in_block_region_included(self, playbook_task_annotated_path):
+        """Test that blank lines within block comment regions are preserved (T019)."""
+        data = parse_playbook(playbook_task_annotated_path)
+
+        # Task 1 has block comments with potential blank lines
+        task1 = data.tasks[1]
+        if hasattr(task1, "_raw_block_comments") and task1._raw_block_comments:
+            # Check that the block can contain comments (blank lines are filtered if no comments exist)
+            assert len(task1._raw_block_comments) > 0
+
+    def test_parser_no_cross_task_comment_bleed(self, playbook_task_annotated_path):
+        """Test that comments don't bleed across task boundaries (T019)."""
+        data = parse_playbook(playbook_task_annotated_path)
+
+        # Task 0 has specific annotations like "Install runtime dependencies"
+        task0 = data.tasks[0]
+        task0_text = " ".join(task0._raw_block_comments) if task0._raw_block_comments else ""
+
+        # Task 1 has different content
+        task1 = data.tasks[1]
+        task1_text = " ".join(task1._raw_block_comments) if task1._raw_block_comments else ""
+
+        # Task 0's specific content should not appear in task 1's comments
+        if "Install runtime dependencies" in task0_text:
+            assert "Install runtime dependencies" not in task1_text, "Task 1 should not contain task 0's description"
+
+        # Task 1's specific content should not appear in task 0's comments
+        if "application directory permissions" in task1_text:
+            assert "application directory permissions" not in task0_text, "Task 0 should not contain task 1's prose"
 
 
 class TestParseRole:

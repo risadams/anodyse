@@ -1,0 +1,46 @@
+# @title: Task Comment Coverage Playbook
+# @description: Exercises task-level annotations, prose comments, and TODO detection.
+# @param: release: Release version to deploy
+# TODO: Add post-deploy notification handler
+# TODO(ris): Validate rollback strategy for failed deploys
+# FIXME: tighten package pinning policy
+
+---
+- hosts: app_servers
+  vars:
+    release: "1.2.3"
+
+  tasks:
+    # @task.description: Install runtime dependencies
+    # @task.warning: Requires package cache refresh
+    # @task.tag: install
+    # @task.note: Uses distro-native package manager
+    # TODO(ris): Add package mirror fallback
+    - name: Install dependencies  # ensure package cache is fresh before install
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - git
+        state: present
+
+    # This configures application directory permissions.
+    # @task.description: Prepare application directory
+
+    - name: Prepare application directory
+      ansible.builtin.file:
+        path: /opt/example-app
+        state: directory
+        mode: "0755"
+
+    - name: Restart application service  # restart to apply new environment values
+      ansible.builtin.systemd:
+        name: example-app
+        state: restarted
+        daemon_reload: true
+
+    - name: Smoke test endpoint
+      ansible.builtin.uri:
+        url: http://localhost:8080/health
+        method: GET
+        status_code: 200

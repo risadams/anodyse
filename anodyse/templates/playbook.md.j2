@@ -46,33 +46,79 @@ No warnings documented.
 No usage examples provided.
 {% endif %}
 
+{% if todos or tasks | selectattr('todos') | list | length > 0 %}
+## TODOs
+
+{%- set all_todos = [] %}
+{%- for todo in todos %}
+{%- set _ = all_todos.append({'location': 'File', 'author': todo.author or '-', 'text': todo.text}) %}
+{%- endfor %}
+{%- for task in tasks %}
+{%- for todo in task.todos %}
+{%- set _ = all_todos.append({'location': task.name, 'author': todo.author or '-', 'text': todo.text}) %}
+{%- endfor %}
+{%- endfor %}
+{%- for task in pre_tasks %}
+{%- for todo in task.todos %}
+{%- set _ = all_todos.append({'location': 'Pre: ' ~ task.name, 'author': todo.author or '-', 'text': todo.text}) %}
+{%- endfor %}
+{%- endfor %}
+{%- for task in post_tasks %}
+{%- for todo in task.todos %}
+{%- set _ = all_todos.append({'location': 'Post: ' ~ task.name, 'author': todo.author or '-', 'text': todo.text}) %}
+{%- endfor %}
+{%- endfor %}
+
+| Location | Author | TODO |
+|----------|--------|------|
+{%- for item in all_todos %}
+| {{ item.location }} | {{ item.author }} | {{ item.text }} |
+{%- endfor %}
+
+{% endif %}
+
 ## Tasks
+
+{%- macro render_task_table(task_list) %}
+{%- set has_content = task_list | selectattr('description') | list | length > 0 
+                      or task_list | selectattr('notes') | list | length > 0
+                      or task_list | selectattr('warnings') | list | length > 0
+                      or task_list | selectattr('tags') | list | length > 0 %}
+{%- if has_content %}
+| Task | Description | Notes | Warnings | Tags |
+|------|-------------|-------|----------|------|
+{%- for task in task_list %}
+| **{{ task.name }}**<br>*{{ task.module }}* | {{ task.description or task.block_comment or "" }} | {{ task.notes | join("<br>") if task.notes else "" }} | {{ task.warnings | join("<br>") if task.warnings else "" }} | {{ task.tags | join(", ") if task.tags else "" }} |
+{%- if task.inline_comment %}
+| | *{{ task.inline_comment }}* | | | |
+{%- endif %}
+{%- endfor %}
+{%- else %}
+{%- for task in task_list %}
+- **{{ task.name }}** (*{{ task.module }}*)
+  {% if task.when %}Condition: `{{ task.when }}`{% endif %}
+  {% if task.loop %}Loop: `{{ task.loop }}`{% endif %}
+{%- endfor %}
+{%- endif %}
+{%- endmacro %}
 
 ### Pre-Tasks
 {% if pre_tasks %}
-{% for task in pre_tasks %}
-- **{{ task.name }}** (*{{ task.module }}*)
-{% endfor %}
+{{ render_task_table(pre_tasks) }}
 {% else %}
 No pre-tasks defined.
 {% endif %}
 
 ### Main Tasks
 {% if tasks %}
-{% for task in tasks %}
-- **{{ task.name }}** (*{{ task.module }}*)
-  {% if task.when %}Condition: `{{ task.when }}`{% endif %}
-  {% if task.loop %}Loop: `{{ task.loop }}`{% endif %}
-{% endfor %}
+{{ render_task_table(tasks) }}
 {% else %}
 No tasks defined.
 {% endif %}
 
 ### Post-Tasks
 {% if post_tasks %}
-{% for task in post_tasks %}
-- **{{ task.name }}** (*{{ task.module }}*)
-{% endfor %}
+{{ render_task_table(post_tasks) }}
 {% else %}
 No post-tasks defined.
 {% endif %}

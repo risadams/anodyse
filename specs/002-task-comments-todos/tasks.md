@@ -9,8 +9,8 @@
 
 **Purpose**: Create feature fixture used by parser/extractor/renderer/integration tests.
 
-- [ ] T001 Create task-comment coverage fixture in `tests/fixtures/playbook_task_annotated.yml`
-- [ ] T002 Add fixture sanity test hook for parseability in `tests/test_parser.py`
+- [X] T001 Create task-comment coverage fixture in `tests/fixtures/playbook_task_annotated.yml`
+- [X] T002 Add fixture sanity test hook for parseability in `tests/test_parser.py`
 
 ---
 
@@ -20,14 +20,15 @@
 
 **⚠️ CRITICAL**: No user story implementation should start until this phase is complete.
 
-- [ ] T003 Add `TodoItem` dataclass with `Literal["task", "file"]` in `anodyse/models.py`
-- [ ] T004 Extend `TaskData` with task annotation/comment/TODO fields in `anodyse/models.py`
-- [ ] T005 Extend `PlaybookData` and `RoleData` with `todos` lists in `anodyse/models.py`
-- [ ] T006 Extend `IndexEntry` with `has_todos` and `todo_count` in `anodyse/models.py`
-- [ ] T007 Create `classify_comment()` with strict priority in `anodyse/utils.py`
-- [ ] T008 Add `parse_todo()` pattern parser in `anodyse/utils.py`
-- [ ] T009 Migrate `slugify()` to `anodyse/utils.py` and update import in `anodyse/output.py`
-- [ ] T010 Add utility unit tests (`test_classify_*`, `test_parse_todo_*`) in `tests/test_utils.py`
+- [X] T003 Add `TodoItem` dataclass with `Literal["task", "file"]` in `anodyse/models.py`
+- [X] T004 Extend `TaskData` with task annotation/comment/TODO fields in `anodyse/models.py`
+- [X] T005 Extend `PlaybookData` and `RoleData` with `todos` lists in `anodyse/models.py`
+- [X] T006 Extend `IndexEntry` with `has_todos` and `todo_count` in `anodyse/models.py`
+- [X] T007 Create `classify_comment()` with strict priority in `anodyse/utils.py`
+- [X] T008 Add `parse_todo()` pattern parser in `anodyse/utils.py`
+- [X] T009 Migrate `slugify()` to `anodyse/utils.py` and update import in `anodyse/output.py`
+- [X] T010 Add utility unit tests (`test_classify_*`, `test_parse_todo_*`) in `tests/test_utils.py`
+- [X] T014 [US1] Implement task block/inline raw comment extraction handoff in `anodyse/parser.py`
 
 **Checkpoint**: Shared types/parsers/utilities are ready for story work.
 
@@ -41,17 +42,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Add parser tests `test_parser_extracts_block_comments_per_task` and `test_parser_extracts_inline_comment_per_task` in `tests/test_parser.py`
-- [ ] T012 [P] [US1] Add extractor tests `test_extract_task_annotation_class_a` and `test_extract_task_no_cross_contamination_between_tasks` in `tests/test_extractor.py`
-- [ ] T013 [P] [US1] Add renderer tests `test_render_task_summary_table_when_any_content` and `test_render_task_description_uses_annotation_first` in `tests/test_renderer.py`
+- [X] T011 [P] [US1] Add parser tests `test_parser_extracts_block_comments_per_task` and `test_parser_extracts_inline_comment_per_task` in `tests/test_parser.py`
+- [X] T012 [P] [US1] Add extractor tests `test_extract_task_annotation_class_a` and `test_extract_task_no_cross_contamination_between_tasks` in `tests/test_extractor.py`
+- [X] T013 [P] [US1] Add renderer tests `test_render_task_summary_table_when_any_content` and `test_render_task_description_uses_annotation_first` in `tests/test_renderer.py`
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement task block/inline raw comment extraction handoff in `anodyse/parser.py`
-- [ ] T015 [US1] Implement `extract_task_annotations()` Class A mapping (`@task.description|note|warning|tag`) in `anodyse/extractor.py`
-- [ ] T016 [US1] Wire per-task extraction flow in `extract()` for task lists in `anodyse/extractor.py`
-- [ ] T017 [US1] Implement task summary table rendering (Description/Notes/Warnings/Tags) with flat-list fallback in `anodyse/templates/playbook.md.j2`
-- [ ] T018 [US1] Implement task summary table rendering (Description/Notes/Warnings/Tags) with flat-list fallback in `anodyse/templates/role.md.j2`
+- [X] T015 [US1] Implement `extract_task_annotations()` Class A mapping (`@task.description|note|warning|tag`) in `anodyse/extractor.py`
+- [X] T016 [US1] Wire per-task extraction flow in `extract()` for task lists in `anodyse/extractor.py`
+- [X] T017 [US1] Implement task summary table rendering (Description/Notes/Warnings/Tags) with flat-list fallback in `anodyse/templates/playbook.md.j2`
+- [X] T018 [US1] Implement task summary table rendering (Description/Notes/Warnings/Tags) with flat-list fallback in `anodyse/templates/role.md.j2`
 
 **Checkpoint**: Structured task annotations render end-to-end independent of prose/TODO enhancements.
 
@@ -65,17 +65,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Add parser tests `test_parser_blank_lines_in_block_region_included` and `test_parser_no_cross_task_comment_bleed` in `tests/test_parser.py`
-- [ ] T020 [P] [US2] Add extractor tests `test_extract_task_prose_block` and `test_extract_task_inline_comment` in `tests/test_extractor.py`
-- [ ] T021 [P] [US2] Add renderer tests `test_render_task_description_falls_back_to_block_comment` and `test_render_task_inline_comment_below_table_row` in `tests/test_renderer.py`
+- [X] T019 [P] [US2] Add parser tests `test_parser_blank_lines_in_block_region_included` and `test_parser_no_cross_task_comment_bleed` in `tests/test_parser.py`
+- [X] T020 [P] [US2] Add extractor tests `test_extract_task_prose_block` and `test_extract_task_inline_comment` in `tests/test_extractor.py`
+- [X] T021 [P] [US2] Add renderer tests `test_render_task_description_falls_back_to_block_comment` and `test_render_task_inline_comment_below_table_row` in `tests/test_renderer.py`
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Implement block prose aggregation and inline prose assignment in `extract_task_annotations()` within `anodyse/extractor.py`
-- [ ] T023 [US2] Implement description fallback (`task.description` then `task.block_comment`) in `anodyse/templates/playbook.md.j2`
-- [ ] T024 [US2] Implement description fallback (`task.description` then `task.block_comment`) in `anodyse/templates/role.md.j2`
-- [ ] T025 [US2] Render inline comment beneath task row as italic prose in `anodyse/templates/playbook.md.j2`
-- [ ] T026 [US2] Render inline comment beneath task row as italic prose in `anodyse/templates/role.md.j2`
+- [X] T022 [US2] Implement block prose aggregation and inline prose assignment in `extract_task_annotations()` within `anodyse/extractor.py`
+- [X] T023 [US2] Implement description fallback (`task.description` then `task.block_comment`) in `anodyse/templates/playbook.md.j2`
+- [X] T024 [US2] Implement description fallback (`task.description` then `task.block_comment`) in `anodyse/templates/role.md.j2`
+- [X] T025 [US2] Render inline comment beneath task row as italic prose in `anodyse/templates/playbook.md.j2`
+- [X] T026 [US2] Render inline comment beneath task row as italic prose in `anodyse/templates/role.md.j2`
 
 **Checkpoint**: Prose comments are preserved and independently testable without TODO section behavior.
 
@@ -89,19 +89,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Add extractor tests `test_extract_task_todo_in_block`, `test_extract_task_inline_todo_is_prose_not_structured`, `test_extract_file_level_todo_source_is_file`, and `test_extract_no_todos_empty_list` in `tests/test_extractor.py`
-- [ ] T028 [P] [US3] Add renderer tests `test_render_todo_section_present_when_todos_exist`, `test_render_todo_section_absent_when_no_todos`, `test_render_todo_table_columns`, `test_render_todo_author_dash_when_none`, `test_render_todo_location_file_vs_task`, `test_render_index_todo_flag_present`, and `test_render_index_todo_count_shown` in `tests/test_renderer.py`
-- [ ] T029 [P] [US3] Add integration test `test_full_pipeline_task_annotated_fixture` in `tests/test_integration.py`
+- [X] T027 [P] [US3] Add extractor tests `test_extract_task_todo_in_block`, `test_extract_task_inline_todo_is_prose_not_structured`, `test_extract_file_level_todo_source_is_file`, and `test_extract_no_todos_empty_list` in `tests/test_extractor.py`
+- [X] T028 [P] [US3] Add renderer tests `test_render_todo_section_present_when_todos_exist`, `test_render_todo_section_absent_when_no_todos`, `test_render_todo_table_columns`, `test_render_todo_author_dash_when_none`, `test_render_todo_location_file_vs_task`, `test_render_index_todo_flag_present`, and `test_render_index_todo_count_shown` in `tests/test_renderer.py`
+- [X] T029 [P] [US3] Add integration test `test_full_pipeline_task_annotated_fixture` in `tests/test_integration.py`
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Implement TODO/FIXME Class C extraction to `task.todos` with `source="task"` in `anodyse/extractor.py`
-- [ ] T031 [US3] Implement file-header TODO extraction to `data.todos` with `source="file"` in `anodyse/extractor.py`
-- [ ] T032 [US3] Populate `IndexEntry.has_todos` and structured `todo_count` in pipeline orchestration within `anodyse/cli.py`
-- [ ] T033 [US3] Add TODO section rendering (Location/Author/TODO) in `anodyse/templates/playbook.md.j2`
-- [ ] T034 [US3] Add TODO section rendering (Location/Author/TODO) in `anodyse/templates/role.md.j2`
-- [ ] T035 [US3] Add index TODO indicator and TODOs column in `anodyse/templates/index.md.j2`
-- [ ] T036 [US3] Update feature template contract fields in `specs/002-task-comments-todos/contracts/template-variables.md`
+- [X] T030 [US3] Implement TODO/FIXME Class C extraction to `task.todos` with `source="task"` in `anodyse/extractor.py`
+- [X] T031 [US3] Implement file-header TODO extraction to `data.todos` with `source="file"` in `anodyse/extractor.py`
+- [X] T032 [US3] Populate `IndexEntry.has_todos` and structured `todo_count` in pipeline orchestration within `anodyse/cli.py`
+- [X] T033 [US3] Add TODO section rendering (Location/Author/TODO) in `anodyse/templates/playbook.md.j2`
+- [X] T034 [US3] Add TODO section rendering (Location/Author/TODO) in `anodyse/templates/role.md.j2`
+- [X] T035 [US3] Add index TODO indicator and TODOs column in `anodyse/templates/index.md.j2`
+- [X] T036 [US3] Update feature template contract fields in `specs/002-task-comments-todos/contracts/template-variables.md`
 
 **Checkpoint**: TODO extraction/render/index behavior works independently with locked counting/classification rules.
 
@@ -111,9 +111,9 @@
 
 **Purpose**: Final validation, docs sync, and regression protection.
 
-- [ ] T037 [P] Run feature quickstart validation steps in `specs/002-task-comments-todos/quickstart.md`
-- [ ] T038 [P] Verify no regressions in existing parser/extractor/renderer tests across `tests/`
-- [ ] T039 Run unchanged 001 regression guard `test_full_pipeline_annotated_playbook` in `tests/test_integration.py`
+- [X] T037 [P] Run feature quickstart validation steps in `specs/002-task-comments-todos/quickstart.md`
+- [X] T038 [P] Verify no regressions in existing parser/extractor/renderer tests across `tests/`
+- [X] T039 Run unchanged 001 regression guard `test_full_pipeline_annotated_playbook` in `tests/test_integration.py`
 
 ---
 

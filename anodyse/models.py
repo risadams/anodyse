@@ -2,7 +2,21 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+
+
+@dataclass
+class TodoItem:
+    """Structured TODO/FIXME item extracted from comments."""
+
+    text: str
+    """TODO message text."""
+
+    author: str | None
+    """Author from TODO(<author>) syntax, if present."""
+
+    source: Literal["task", "file"]
+    """Origin of TODO item: task-level or file-level."""
 
 
 @dataclass
@@ -19,7 +33,13 @@ class TaskData:
     """Module arguments as key-value pairs."""
 
     description: str | None = None
-    """Task-level @description annotation (None if absent)."""
+    """Task-level @task.description annotation (None if absent)."""
+
+    notes: list[str] = field(default_factory=list)
+    """Task-level @task.note annotations."""
+
+    warnings: list[str] = field(default_factory=list)
+    """Task-level @task.warning annotations."""
 
     when: str | None = None
     """Conditional clause (from 'when:' key), used for Mermaid diagram branching."""
@@ -29,6 +49,15 @@ class TaskData:
 
     tags: list[str] = field(default_factory=list)
     """Ansible tags applied to this task."""
+
+    block_comment: str | None = None
+    """Task-level prose block comments attached above the task."""
+
+    inline_comment: str | None = None
+    """Task-level prose inline comment on first key line."""
+
+    todos: list[TodoItem] = field(default_factory=list)
+    """Structured task-level TODO/FIXME items."""
 
 
 @dataclass
@@ -77,6 +106,9 @@ class PlaybookData:
     doc_tags: list[str] = field(default_factory=list)
     """Documentation tags from @tag annotations (used for index categorization)."""
 
+    todos: list[TodoItem] = field(default_factory=list)
+    """Structured file-level TODO/FIXME items found in playbook header comments."""
+
 
 @dataclass
 class RoleData:
@@ -118,6 +150,9 @@ class RoleData:
     meta: dict[str, Any] = field(default_factory=dict)
     """Role metadata from meta/main.yml (dependencies, galaxy_info, etc.)."""
 
+    todos: list[TodoItem] = field(default_factory=list)
+    """Structured file-level TODO/FIXME items found in role comments."""
+
 
 @dataclass
 class IndexEntry:
@@ -140,3 +175,9 @@ class IndexEntry:
 
     item_type: str
     """Either 'playbook' or 'role' for index grouping."""
+
+    has_todos: bool = False
+    """Whether any structured TODO items exist for this entry."""
+
+    todo_count: int = 0
+    """Total structured TODO count for this entry."""
