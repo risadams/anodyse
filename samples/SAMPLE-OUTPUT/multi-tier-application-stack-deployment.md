@@ -41,6 +41,16 @@ ansible-playbook deploy-app-stack.yml -e "environment=prod app_version=1.2.3"
 
 
 
+## TODOs
+
+| Location | Author | TODO |
+|----------|--------|------|
+| File | - | Add health check monitoring and alerting |
+| File | ops | Implement blue-green deployment capability |
+| File | - | Session persistence configuration needs testing |
+| Start HAProxy | devops | Add SSL termination configuration |
+
+
 
 ## Tasks
 
@@ -52,18 +62,12 @@ No pre-tasks defined.
 ### Main Tasks
 
 
-- **Install HAProxy** (*apt*)
-  Condition: `ansible_os_family == "Debian"`
-  
-- **Configure HAProxy** (*template*)
-  
-  
-- **Start HAProxy** (*service*)
-  
-  
-- **Allow HTTP/HTTPS traffic** (*ufw*)
-  
-  Loop: `[80, 443]`
+| Task | Description | Notes | Warnings | Tags |
+|------|-------------|-------|----------|------|
+| **Install HAProxy**<br>*apt* |  |  |  |  |
+| **Configure HAProxy**<br>*template* | Install HAProxy load balancer | HAProxy provides high-performance load balancing |  | install, loadbalancer |
+| **Start HAProxy**<br>*service* | Deploy HAProxy configuration with backend servers | Template dynamically generates backend server list from inventory | Configuration changes require HAProxy restart or reload | configuration, loadbalancer |
+| **Allow HTTP/HTTPS traffic**<br>*ufw* | Start and enable HAProxy |  |  | service, loadbalancer |
 
 
 ### Post-Tasks

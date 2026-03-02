@@ -6,17 +6,17 @@
 
 | [Application Configuration Management](application-configuration-management.md) | playbook | configuration, templates, config-management | — | Deploy and manage application configuration files using Jinja2 templates with environment-specific settings |
 
-| [PostgreSQL Database Server Deployment](postgresql-database-server-deployment.md) | playbook | database, postgresql, security | — | Install and configure PostgreSQL database server with security hardening |
+| ⚠️ [PostgreSQL Database Server Deployment](postgresql-database-server-deployment.md) | playbook | database, postgresql, security | 6 | Install and configure PostgreSQL database server with security hardening |
 
 | [Enterprise Application Stack Orchestrator](enterprise-application-stack-orchestrator.md) | playbook | enterprise, orchestration, production | — | Comprehensive deployment of a three-tier enterprise application stack with database cluster, application servers, load balancers, and monitoring |
 
 | [deploy-unannotated](deploy-unannotated.md) | playbook | — | — | Undocumented |
 
-| [Multi-Tier Application Stack Deployment](multi-tier-application-stack-deployment.md) | playbook | multi-tier, loadbalancer, high-availability | — | Deploy a complete 3-tier application stack with load balancer, app servers, and database |
+| ⚠️ [Multi-Tier Application Stack Deployment](multi-tier-application-stack-deployment.md) | playbook | multi-tier, loadbalancer, high-availability | 4 | Deploy a complete 3-tier application stack with load balancer, app servers, and database |
 
-| [System Security Hardening](system-security-hardening.md) | playbook | security, hardening, compliance | — | Apply security hardening measures to Linux systems following CIS benchmarks |
+| ⚠️ [System Security Hardening](system-security-hardening.md) | playbook | security, hardening, compliance | 6 | Apply security hardening measures to Linux systems following CIS benchmarks |
 
-| [NGINX Web Server Deployment](nginx-web-server-deployment.md) | playbook | — | — | Deploy and configure NGINX web server with SSL/TLS support and custom site configuration |
+| ⚠️ [NGINX Web Server Deployment](nginx-web-server-deployment.md) | playbook | web-server, nginx, ssl | 5 | Deploy and configure NGINX web server with SSL/TLS support and custom site configuration |
 
 | [Application Server Deployment](application-server-deployment.md) | role | application, deployment, java | — | Deploy Java-based enterprise application server with database connectivity |
 

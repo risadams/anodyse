@@ -34,12 +34,6 @@ Install and configure PostgreSQL database server with security hardening
 
 > - Ensure strong passwords are used in production
 
-> - Restricts connections to local Unix socket by default
-
-> - Ensure db_password is stored securely (use Ansible Vault)
-
-> - Only opens port when allow_remote is true
-
 
 
 ## Usage Examples
@@ -53,6 +47,18 @@ ansible-playbook deploy-postgresql.yml -e "db_name=myapp db_user=appuser db_pass
 
 
 
+## TODOs
+
+| Location | Author | TODO |
+|----------|--------|------|
+| File | - | Add automated backup configuration |
+| File | dba | Implement connection pooling with PgBouncer |
+| File | - | Need to add SSL/TLS configuration for encrypted connections |
+| Configure PostgreSQL | - | Add PostgreSQL development packages for extension building |
+| Start PostgreSQL service | security | Add support for certificate-based authentication |
+| Create database user | - | Add support for custom database encoding and collation |
+
+
 
 ## Tasks
 
@@ -64,33 +70,18 @@ No pre-tasks defined.
 ### Main Tasks
 
 
-- **Add PostgreSQL APT repository** (*apt_repository*)
-  Condition: `ansible_os_family == "Debian"`
-  
-- **Add PostgreSQL GPG key** (*apt_key*)
-  Condition: `ansible_os_family == "Debian"`
-  
-- **Install PostgreSQL** (*apt*)
-  Condition: `ansible_os_family == "Debian"`
-  
-- **Configure PostgreSQL** (*lineinfile*)
-  
-  Loop: `[{'regexp': '^#?port\\s*=', 'line': 'port = {{ postgres_port }}'}, {'regexp': '^#?max_connections\\s*=', 'line': 'max_connections = {{ max_connections }}'}, {'regexp': '^#?shared_buffers\\s*=', 'line': 'shared_buffers = {{ shared_buffers }}'}]`
-- **Configure pg_hba** (*template*)
-  
-  
-- **Start PostgreSQL service** (*service*)
-  
-  
-- **Create database** (*postgresql_db*)
-  Condition: `db_name is defined`
-  
-- **Create database user** (*postgresql_user*)
-  Condition: `['db_user is defined', 'db_password is defined', 'db_name is defined']`
-  
-- **Configure firewall for PostgreSQL** (*ufw*)
-  Condition: `['ansible_os_family == "Debian"', 'allow_remote | bool']`
-  
+| Task | Description | Notes | Warnings | Tags |
+|------|-------------|-------|----------|------|
+| **Add PostgreSQL APT repository**<br>*apt_repository* |  |  |  |  |
+| **Add PostgreSQL GPG key**<br>*apt_key* | Add official PostgreSQL repository for latest packages | Official repo provides more recent versions than distro defaults |  | setup |
+| **Install PostgreSQL**<br>*apt* | Import GPG key for package verification |  | Key verification ensures package authenticity | setup, security |
+| **Configure PostgreSQL**<br>*lineinfile* | Install PostgreSQL server and client tools | Python bindings required for Ansible database modules |  | install |
+| **Configure pg_hba**<br>*template* | Update PostgreSQL configuration with custom settings | Tune shared_buffers based on available system memory | Changes require service restart to take effect | configuration, performance |
+| | *performance tuning for production workloads* | | | |
+| **Start PostgreSQL service**<br>*service* | Update pg_hba.conf for client access control | Template should implement principle of least privilege | Restricts connections to local Unix socket by default<br>Review security implications before allowing remote access | configuration, security |
+| **Create database**<br>*postgresql_db* | Ensure PostgreSQL service is running and enabled at boot |  |  | service |
+| **Create database user**<br>*postgresql_user* | Create a new database for the application | Database created with default encoding and locale |  | database |
+| **Configure firewall for PostgreSQL**<br>*ufw* | Create a new database user with authentication | User granted ALL privileges on specified database | Ensure db_password is stored securely (use Ansible Vault)<br>Password will be visible in logs if not properly protected | database, security |
 
 
 ### Post-Tasks
