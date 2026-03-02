@@ -113,6 +113,39 @@ Expected output files include:
 - Exit code `0` = success, `1` = parse/error failure, `2` = docs generated with warnings.
 - To avoid `.bak` files on overwrite, add `--no-backup`.
 
+## Custom Template Overrides (`/.anodyse/templates/`)
+
+Anodyse supports local Jinja2 template overrides from your current working directory.
+
+Template lookup order:
+
+1. `./.anodyse/templates/`
+2. Built-in package templates (`anodyse/templates/`)
+
+Supported override filenames:
+
+- `playbook.md.j2`
+- `role.md.j2`
+- `index.md.j2`
+
+### Quick usage
+
+```bash
+mkdir -p .anodyse/templates
+cp samples/anodyse-template-overrides/templates/*.j2 .anodyse/templates/
+anodyse samples/web-server/deploy-nginx.yml --output docs/custom-templates --verbose
+```
+
+PowerShell (Windows):
+
+```powershell
+New-Item -ItemType Directory -Path .anodyse/templates -Force | Out-Null
+Copy-Item samples/anodyse-template-overrides/templates/*.j2 .anodyse/templates/
+anodyse samples/web-server/deploy-nginx.yml --output docs/custom-templates --verbose
+```
+
+See `samples/anodyse-template-overrides/` for a complete sample.
+
 ## Integration Points
 
 - GitHub Actions: Anodyse should be triggerable as a workflow step

@@ -1,0 +1,17 @@
+# 📚 Custom Docs Index
+
+> Custom layout loaded from `/.anodyse/templates/index.md.j2`
+
+{% if entries %}
+## Documents ({{ entries | length }})
+
+{% for entry in entries %}
+- [{{ entry.title }}]({{ entry.output_filename }}) — **{{ entry.item_type }}**
+{% endfor %}
+{% else %}
+No documentation entries were generated.
+{% endif %}
+
+---
+
+_Custom template example for Anodyse._

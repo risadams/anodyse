@@ -1,0 +1,35 @@
+# 🔧 {{ title }}
+
+> Custom layout loaded from `/.anodyse/templates/playbook.md.j2`
+
+## Summary
+
+{{ description or "No description provided." }}
+
+{% if hosts %}
+- **Target hosts:** `{{ hosts }}`
+{% endif %}
+{% if doc_tags %}
+- **Tags:** {{ doc_tags | join(", ") }}
+{% endif %}
+
+## Task Count
+
+- Pre-tasks: {{ pre_tasks | length }}
+- Main tasks: {{ tasks | length }}
+- Post-tasks: {{ post_tasks | length }}
+- Handlers: {{ handlers | length }}
+
+## Tasks
+
+{% if tasks %}
+{% for task in tasks %}
+- {{ loop.index }}. **{{ task.name }}** (`{{ task.module }}`)
+{% endfor %}
+{% else %}
+No tasks documented.
+{% endif %}
+
+---
+
+_Custom template example for Anodyse._

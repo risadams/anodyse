@@ -6,6 +6,7 @@ This directory contains representative Ansible playbooks for demonstration and t
 
 ```
 samples/
+├── anodyse-template-overrides/ # Custom Anodyse output templates
 ├── web-server/          # NGINX web server deployment
 ├── database/            # PostgreSQL database setup
 ├── docker-app/          # Docker container deployment
@@ -88,6 +89,28 @@ Demonstrates:
 Create comprehensive stack documentation:
 ```bash
 anodyse samples/multi-tier/deploy-app-stack.yml --output docs/ --graph
+```
+
+### 6. Template Overrides (`anodyse-template-overrides/`)
+**Files:** `templates/playbook.md.j2`, `templates/role.md.j2`, `templates/index.md.j2`
+
+Demonstrates:
+- Overriding built-in markdown templates with `/.anodyse/templates/`
+- Keeping only the templates you want to customize
+- Falling back to package defaults when a file is not overridden
+
+Use custom templates:
+```bash
+mkdir -p .anodyse/templates
+cp samples/anodyse-template-overrides/templates/*.j2 .anodyse/templates/
+anodyse samples/web-server/deploy-nginx.yml --output docs/custom-templates --verbose
+```
+
+PowerShell (Windows):
+```powershell
+New-Item -ItemType Directory -Path .anodyse/templates -Force | Out-Null
+Copy-Item samples/anodyse-template-overrides/templates/*.j2 .anodyse/templates/
+anodyse samples/web-server/deploy-nginx.yml --output docs/custom-templates --verbose
 ```
 
 ## Using These Samples

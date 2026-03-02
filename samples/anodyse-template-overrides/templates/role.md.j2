@@ -1,0 +1,31 @@
+# 🧩 {{ title }}
+
+> Custom layout loaded from `/.anodyse/templates/role.md.j2`
+
+## Summary
+
+{{ description or "No description provided." }}
+
+{% if doc_tags %}
+**Tags:** {{ doc_tags | join(", ") }}
+{% endif %}
+
+## Variables Snapshot
+
+- Defaults: {{ defaults | length }}
+- Vars: {{ vars | length }}
+- Parameters: {{ params | length }}
+
+## Role Tasks
+
+{% if tasks %}
+{% for task in tasks %}
+- {{ loop.index }}. **{{ task.name }}** (`{{ task.module }}`)
+{% endfor %}
+{% else %}
+No tasks documented.
+{% endif %}
+
+---
+
+_Custom template example for Anodyse._
