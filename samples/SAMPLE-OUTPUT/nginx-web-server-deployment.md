@@ -46,6 +46,8 @@ ansible-playbook deploy-nginx.yml -e "site_name=example.com enable_ssl=true"
 
 
 
+
+
 ## Tasks
 
 ### Pre-Tasks
@@ -59,35 +61,27 @@ No pre-tasks defined.
 - **Update apt cache** (*apt*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Install nginx** (*package*)
   
   
-
 - **Create document root** (*file*)
   
   
-
 - **Configure nginx site** (*template*)
   
   
-
 - **Enable nginx site** (*file*)
   
   
-
 - **Start nginx service** (*service*)
   
   
-
 - **Allow HTTP traffic** (*ufw*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Allow HTTPS traffic** (*ufw*)
   Condition: `['ansible_os_family == "Debian"', 'enable_ssl | bool']`
   
-
 
 
 ### Post-Tasks

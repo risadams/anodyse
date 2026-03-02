@@ -26,6 +26,8 @@ No warnings documented.
 No usage examples provided.
 
 
+
+
 ## Tasks
 
 ### Pre-Tasks
@@ -39,23 +41,18 @@ No pre-tasks defined.
 - **Update apt cache** (*apt*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Install PostgreSQL packages** (*package*)
   
   
-
 - **Ensure PostgreSQL service is enabled and started** (*service*)
   
   
-
 - **Ensure data directory exists** (*file*)
   
   
-
 - **Configure listen_addresses** (*lineinfile*)
   
   
-
 
 
 ### Post-Tasks

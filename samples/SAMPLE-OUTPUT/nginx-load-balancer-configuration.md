@@ -30,54 +30,25 @@ No documented parameters.
 No usage examples provided.
 
 
+
+
 ## Tasks
 
 
 
-- **Install nginx** (*package*)
-  
-  
-
-- **Remove default nginx config** (*file*)
-  
-  Loop: `['/etc/nginx/sites-enabled/default', '/etc/nginx/conf.d/default.conf']`
-
-- **Deploy upstream configuration** (*template*)
-  
-  
-
-- **Deploy nginx load balancer config** (*template*)
-  
-  
-
-- **Deploy SSL configuration** (*template*)
-  
-  
-
-- **Deploy health check endpoint** (*template*)
-  
-  
-
-- **Configure nginx performance settings** (*lineinfile*)
-  
-  Loop: `[{'regexp': '^\\s*worker_processes', 'line': '    worker_processes auto;'}, {'regexp': '^\\s*worker_connections', 'line': '        worker_connections 4096;', 'insertafter': 'events {'}, {'regexp': '^\\s*keepalive_timeout', 'line': '    keepalive_timeout 65;'}]`
-
-- **Create nginx log directories** (*file*)
-  
-  Loop: `['/var/log/nginx/access', '/var/log/nginx/error']`
-
-- **Deploy custom log format** (*blockinfile*)
-  
-  
-
-- **Enable nginx service** (*systemd*)
-  
-  
-
-- **Open firewall ports** (*firewalld*)
-  Condition: `ansible_os_family == "RedHat"`
-  Loop: `['80/tcp', '443/tcp']`
-
+| Task | Description | Notes | Warnings | Tags |
+|------|-------------|-------|----------|------|
+| **Install nginx**<br>*package* | @title Install NGINX @description Install NGINX web server package |  |  | i, n, s, t, a, l, l |
+| **Remove default nginx config**<br>*file* | @title Remove default NGINX configuration @description Clean up default site configuration |  |  |  |
+| **Deploy upstream configuration**<br>*template* | @title Deploy upstream configuration @description Configure backend application server pool @param backend_servers Array of backend server addresses |  |  |  |
+| **Deploy nginx load balancer config**<br>*template* | @title Deploy load balancer configuration @description Configure NGINX virtual host with proxy settings and SSL |  |  |  |
+| **Deploy SSL configuration**<br>*template* | @title Configure SSL/TLS settings @description Deploy SSL configuration with modern cipher suites @param ssl_protocols Allowed SSL/TLS protocol versions |  |  |  |
+| **Deploy health check endpoint**<br>*template* | @title Configure health check endpoint @description Set up dedicated health check endpoint for load balancer monitoring |  |  |  |
+| **Configure nginx performance settings**<br>*lineinfile* | @title Optimize NGINX performance @description Apply performance tuning to nginx.conf |  |  |  |
+| **Create nginx log directories**<br>*file* | @title Create log directories @description Ensure log directories exist with proper permissions |  |  |  |
+| **Deploy custom log format**<br>*blockinfile* | @title Configure access logs @description Set up structured JSON logging for better log analysis |  |  |  |
+| **Enable nginx service**<br>*systemd* | @title Enable and start NGINX @description Ensure NGINX service is running and enabled at boot |  |  |  |
+| **Open firewall ports**<br>*firewalld* | @title Configure firewall rules @description Open ports for HTTP and HTTPS traffic |  |  |  |
 
 
 ## Execution Flow

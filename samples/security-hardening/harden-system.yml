@@ -12,6 +12,10 @@
 # @tag security
 # @tag hardening
 # @tag compliance
+# TODO: Add SELinux/AppArmor configuration
+# TODO(security): Implement file integrity monitoring with AIDE
+# TODO(ops): Add security audit logging configuration
+# FIXME: SSH configuration needs validation before restart
 
 ---
 - name: System Security Hardening
@@ -28,8 +32,11 @@
     password_min_length: 12
     
   tasks:
-    # @title Update all packages
-    # @description Ensure all system packages are up-to-date
+    # @task.description: Ensure all system packages are up-to-date
+    # @task.warning: Distribution upgrade may require system reboot
+    # @task.note: Cache valid for 1 hour to avoid excessive updates
+    # @task.tag: updates
+    # @task.tag: maintenance
     - name: Update all packages
       apt:
         upgrade: dist
@@ -37,8 +44,13 @@
         cache_valid_time: 3600
       when: ansible_os_family == "Debian"
       
-    # @title Install security packages
-    # @description Install essential security tools
+    # Essential security tools for system hardening and monitoring.
+    # Includes firewall, intrusion detection, and automated patching.
+    # @task.description: Install essential security tools
+    # @task.note: AIDE provides file integrity monitoring
+    # @task.note: Auditd enables system call auditing
+    # @task.tag: install
+    # @task.tag: security
     - name: Install security packages
       apt:
         name:
@@ -50,8 +62,12 @@
         state: present
       when: ansible_os_family == "Debian"
       
-    # @title Configure automatic security updates
-    # @description Enable automatic installation of security updates
+    # @task.description: Enable automatic installation of security updates
+    # @task.warning: Automatic updates may affect application compatibility
+    # @task.note: Only security patches are auto-installed
+    # @task.tag: configuration
+    # @task.tag: updates
+    # TODO(ops): Add email notifications for update status
     - name: Configure unattended-upgrades
       copy:
         dest: /etc/apt/apt.conf.d/50unattended-upgrades
@@ -65,12 +81,17 @@
         group: root
         mode: '0644'
         
-    # @title Harden SSH configuration
-    # @description Apply security best practices to SSH daemon
-    # @param ssh_port Port for SSH service
-    # @param disable_root_ssh Whether to disable root login
-    # @warning Changes require SSH service restart
-    - name: Harden SSH configuration
+    # Applies CIS benchmark recommendations for SSH security.
+    # Disables password authentication and enforces key-based auth.
+    # @task.description: Apply security best practices to SSH daemon
+    # @task.warning: Changes require SSH service restart
+    # @task.warning: Ensure SSH keys are deployed before disabling passwords
+    # @task.note: Custom port helps reduce automated attack attempts
+    # @task.tag: ssh
+    # @task.tag: security
+    # @task.tag: compliance
+    # FIXME(security): Add two-factor authentication support
+    - name: Harden SSH configuration  # implements CIS benchmark controls
       lineinfile:
         path: /etc/ssh/sshd_config
         regexp: "{{ item.regexp }}"
@@ -87,10 +108,13 @@
         - { regexp: '^#?ClientAliveCountMax\s', line: "ClientAliveCountMax 2" }
       notify: Restart sshd
       
-    # @title Restrict SSH access to specific users
-    # @description Limit SSH access to approved user accounts
-    # @param allowed_ssh_users List of allowed SSH users
-    # @warning Only users in this list can SSH to the system
+    # @task.description: Limit SSH access to approved user accounts
+    # @task.warning: Only users in this list can SSH to the system
+    # @task.warning: Empty list means all users can access via SSH
+    # @task.note: Implements principle of least privilege
+    # @task.tag: ssh
+    # @task.tag: security
+    # @task.tag: access-control
     - name: Restrict SSH to specific users
       lineinfile:
         path: /etc/ssh/sshd_config

@@ -32,6 +32,8 @@ No documented parameters.
 No usage examples provided.
 
 
+
+
 ## Tasks
 
 
@@ -39,47 +41,36 @@ No usage examples provided.
 - **Download application JAR** (*get_url*)
   
   
-
 - **Deploy application properties** (*template*)
   
   
-
 - **Configure JVM options** (*template*)
   
   
-
 - **Deploy systemd service file** (*template*)
   
   
-
 - **Configure logrotate** (*template*)
   
   
-
 - **Create application directories** (*file*)
   
   Loop: `['{{ app_home }}/config', '{{ app_home }}/logs', '{{ app_home }}/temp', '{{ app_home }}/data']`
-
 - **Deploy database migrations** (*copy*)
   
   
-
 - **Execute database migrations** (*command*)
   Condition: `inventory_hostname == groups['app_servers'][0]`
   
-
 - **Start application service** (*systemd*)
   
   
-
 - **Deploy Prometheus JMX exporter** (*get_url*)
   Condition: `enable_monitoring | default(false) | bool`
   
-
 - **Deploy JMX exporter configuration** (*template*)
   Condition: `enable_monitoring | default(false) | bool`
   
-
 
 
 ## Execution Flow

@@ -40,6 +40,8 @@ ansible-playbook deploy-app-stack.yml -e "environment=prod app_version=1.2.3"
 
 
 
+
+
 ## Tasks
 
 ### Pre-Tasks
@@ -53,19 +55,15 @@ No pre-tasks defined.
 - **Install HAProxy** (*apt*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Configure HAProxy** (*template*)
   
   
-
 - **Start HAProxy** (*service*)
   
   
-
 - **Allow HTTP/HTTPS traffic** (*ufw*)
   
   Loop: `[80, 443]`
-
 
 
 ### Post-Tasks

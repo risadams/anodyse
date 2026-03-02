@@ -12,6 +12,9 @@
 # @tag database
 # @tag postgresql
 # @tag security
+# TODO: Add automated backup configuration
+# TODO(dba): Implement connection pooling with PgBouncer
+# FIXME: Need to add SSL/TLS configuration for encrypted connections
 
 ---
 - name: Deploy PostgreSQL Database Server
@@ -26,25 +29,31 @@
     shared_buffers: "256MB"
     
   tasks:
-    # @title Add PostgreSQL APT repository
-    # @description Add official PostgreSQL repository for latest packages
+    # @task.description: Add official PostgreSQL repository for latest packages
+    # @task.note: Official repo provides more recent versions than distro defaults
+    # @task.tag: setup
     - name: Add PostgreSQL APT repository
       apt_repository:
         repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
         state: present
       when: ansible_os_family == "Debian"
       
-    # @title Import PostgreSQL signing key
-    # @description Import GPG key for package verification
+    # @task.description: Import GPG key for package verification
+    # @task.warning: Key verification ensures package authenticity
+    # @task.tag: setup
+    # @task.tag: security
     - name: Add PostgreSQL GPG key
       apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
         state: present
       when: ansible_os_family == "Debian"
       
-    # @title Install PostgreSQL packages
-    # @description Install PostgreSQL server and client tools
-    # @param postgres_version Version of PostgreSQL to install
+    # Installs the specified version of PostgreSQL along with
+    # contributed modules and Python bindings for Ansible automation.
+    # @task.description: Install PostgreSQL server and client tools
+    # @task.note: Python bindings required for Ansible database modules
+    # @task.tag: install
+    # TODO: Add PostgreSQL development packages for extension building
     - name: Install PostgreSQL
       apt:
         name:
@@ -55,11 +64,12 @@
         update_cache: yes
       when: ansible_os_family == "Debian"
       
-    # @title Configure PostgreSQL server
-    # @description Update PostgreSQL configuration with custom settings
-    # @param max_connections Maximum number of concurrent connections
-    # @param shared_buffers Amount of memory for shared buffers
-    - name: Configure PostgreSQL
+    # @task.description: Update PostgreSQL configuration with custom settings
+    # @task.warning: Changes require service restart to take effect
+    # @task.note: Tune shared_buffers based on available system memory
+    # @task.tag: configuration
+    # @task.tag: performance
+    - name: Configure PostgreSQL  # performance tuning for production workloads
       lineinfile:
         path: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
         regexp: "{{ item.regexp }}"
@@ -70,9 +80,13 @@
         - { regexp: '^#?shared_buffers\s*=', line: "shared_buffers = {{ shared_buffers }}" }
       notify: Restart postgresql
       
-    # @title Configure client authentication
-    # @description Update pg_hba.conf for client access control
-    # @warning Restricts connections to local Unix socket by default
+    # @task.description: Update pg_hba.conf for client access control
+    # @task.warning: Restricts connections to local Unix socket by default
+    # @task.warning: Review security implications before allowing remote access
+    # @task.note: Template should implement principle of least privilege
+    # @task.tag: configuration
+    # @task.tag: security
+    # FIXME(security): Add support for certificate-based authentication
     - name: Configure pg_hba
       template:
         src: pg_hba.conf.j2
@@ -82,17 +96,18 @@
         mode: '0640'
       notify: Restart postgresql
       
-    # @title Start and enable PostgreSQL
-    # @description Ensure PostgreSQL service is running and enabled at boot
+    # @task.description: Ensure PostgreSQL service is running and enabled at boot
+    # @task.tag: service
     - name: Start PostgreSQL service
       service:
         name: postgresql
         state: started
         enabled: yes
         
-    # @title Create application database
-    # @description Create a new database for the application
-    # @param db_name Name of the database to create
+    # @task.description: Create a new database for the application
+    # @task.note: Database created with default encoding and locale
+    # @task.tag: database
+    # TODO: Add support for custom database encoding and collation
     - name: Create database
       postgresql_db:
         name: "{{ db_name }}"
@@ -100,11 +115,12 @@
       become_user: postgres
       when: db_name is defined
       
-    # @title Create database user
-    # @description Create a new database user with authentication
-    # @param db_user Username for the database user
-    # @param db_password Password for the database user
-    # @warning Ensure db_password is stored securely (use Ansible Vault)
+    # @task.description: Create a new database user with authentication
+    # @task.warning: Ensure db_password is stored securely (use Ansible Vault)
+    # @task.warning: Password will be visible in logs if not properly protected
+    # @task.note: User granted ALL privileges on specified database
+    # @task.tag: database
+    # @task.tag: security
     - name: Create database user
       postgresql_user:
         name: "{{ db_user }}"
@@ -118,9 +134,11 @@
         - db_password is defined
         - db_name is defined
       
-    # @title Configure firewall
-    # @description Open PostgreSQL port in firewall if remote access enabled
-    # @warning Only opens port when allow_remote is true
+    # @task.description: Open PostgreSQL port in firewall if remote access enabled
+    # @task.warning: Only opens port when allow_remote is true
+    # @task.warning: Ensure VPN or IP whitelisting is used for production
+    # @task.tag: firewall
+    # @task.tag: security
     - name: Configure firewall for PostgreSQL
       ufw:
         rule: allow
@@ -131,8 +149,10 @@
         - allow_remote | bool
         
   handlers:
-    # @title Restart PostgreSQL service
-    # @description Restart PostgreSQL to apply configuration changes
+    # @task.description: Restart PostgreSQL to apply configuration changes
+    # @task.warning: Restart will temporarily interrupt database connections
+    # @task.note: Consider using reload for non-critical config changes
+    # @task.tag: service
     - name: Restart postgresql
       service:
         name: postgresql

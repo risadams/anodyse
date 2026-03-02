@@ -52,6 +52,8 @@ ansible-playbook deploy-postgresql.yml -e "db_name=myapp db_user=appuser db_pass
 
 
 
+
+
 ## Tasks
 
 ### Pre-Tasks
@@ -65,39 +67,30 @@ No pre-tasks defined.
 - **Add PostgreSQL APT repository** (*apt_repository*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Add PostgreSQL GPG key** (*apt_key*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Install PostgreSQL** (*apt*)
   Condition: `ansible_os_family == "Debian"`
   
-
 - **Configure PostgreSQL** (*lineinfile*)
   
   Loop: `[{'regexp': '^#?port\\s*=', 'line': 'port = {{ postgres_port }}'}, {'regexp': '^#?max_connections\\s*=', 'line': 'max_connections = {{ max_connections }}'}, {'regexp': '^#?shared_buffers\\s*=', 'line': 'shared_buffers = {{ shared_buffers }}'}]`
-
 - **Configure pg_hba** (*template*)
   
   
-
 - **Start PostgreSQL service** (*service*)
   
   
-
 - **Create database** (*postgresql_db*)
   Condition: `db_name is defined`
   
-
 - **Create database user** (*postgresql_user*)
   Condition: `['db_user is defined', 'db_password is defined', 'db_name is defined']`
   
-
 - **Configure firewall for PostgreSQL** (*ufw*)
   Condition: `['ansible_os_family == "Debian"', 'allow_remote | bool']`
   
-
 
 
 ### Post-Tasks

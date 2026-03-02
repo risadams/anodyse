@@ -11,6 +11,9 @@
 # @tag multi-tier
 # @tag loadbalancer
 # @tag high-availability
+# TODO: Add health check monitoring and alerting
+# TODO(ops): Implement blue-green deployment capability
+# FIXME: Session persistence configuration needs testing
 
 ---
 - name: Deploy Load Balancer
@@ -22,8 +25,10 @@
     health_check_interval: 5
     
   tasks:
-    # @title Install HAProxy
-    # @description Install HAProxy load balancer
+    # @task.description: Install HAProxy load balancer
+    # @task.note: HAProxy provides high-performance load balancing
+    # @task.tag: install
+    # @task.tag: loadbalancer
     - name: Install HAProxy
       apt:
         name: haproxy
@@ -31,10 +36,12 @@
         update_cache: yes
       when: ansible_os_family == "Debian"
       
-    # @title Configure HAProxy
-    # @description Deploy HAProxy configuration with backend servers
-    # @param lb_algorithm Load balancing algorithm
-    # @param health_check_interval Interval for health checks in seconds
+    # @task.description: Deploy HAProxy configuration with backend servers
+    # @task.warning: Configuration changes require HAProxy restart or reload
+    # @task.note: Template dynamically generates backend server list from inventory
+    # @task.tag: configuration
+    # @task.tag: loadbalancer
+    # TODO(devops): Add SSL termination configuration
     - name: Configure HAProxy
       template:
         src: haproxy.cfg.j2
@@ -44,17 +51,20 @@
         mode: '0644'
       notify: Restart haproxy
       
-    # @title Enable HAProxy service
-    # @description Start and enable HAProxy
+    # @task.description: Start and enable HAProxy
+    # @task.tag: service
+    # @task.tag: loadbalancer
     - name: Start HAProxy
       service:
         name: haproxy
         state: started
         enabled: yes
         
-    # @title Configure firewall for load balancer
-    # @description Open HTTP and HTTPS ports
-    - name: Allow HTTP/HTTPS traffic
+    # @task.description: Open HTTP and HTTPS ports
+    # @task.warning: Ensure these ports align with your security policy
+    # @task.tag: firewall
+    # @task.tag: security
+    - name: Allow HTTP/HTTPS traffic  # external traffic ingress point
       ufw:
         rule: allow
         port: "{{ item }}"
@@ -76,9 +86,11 @@
     node_env: production
     
   tasks:
-    # @title Create application user
-    # @description Create dedicated system user for running the application
-    # @param app_user Username for the application service
+    # @task.description: Create dedicated system user for running the application
+    # @task.note: System user with no shell for security
+    # @task.warning: Ensure home directory has appropriate permissions
+    # @task.tag: setup
+    # @task.tag: security
     - name: Create application user
       user:
         name: "{{ app_user }}"
@@ -87,8 +99,12 @@
         home: "/opt/{{ app_name }}"
         create_home: yes
         
-    # @title Install runtime dependencies
-    # @description Install Node.js and required system packages
+    # Installs the Node.js runtime and package manager.
+    # Git is required for application deployment from repository.
+    # @task.description: Install Node.js and required system packages
+    # @task.note: Uses distribution's Node.js version for compatibility
+    # @task.tag: install
+    # TODO: Consider using NodeSource repository for latest LTS version
     - name: Install Node.js
       apt:
         name:
@@ -99,9 +115,11 @@
         update_cache: yes
       when: ansible_os_family == "Debian"
       
-    # @title Deploy application code
-    # @description Clone or update application repository
-    # @param app_version Git tag or branch to deploy
+    # @task.description: Clone or update application repository
+    # @task.warning: Force flag will discard local changes
+    # @task.note: Runs as application user for proper file ownership
+    # @task.tag: deployment
+    # TODO(dev): Add rollback capability for failed deployments
     - name: Deploy application
       git:
         repo: "https://github.com/example/{{ app_name }}.git"
@@ -111,8 +129,10 @@
       become_user: "{{ app_user }}"
       notify: Restart application
       
-    # @title Install application dependencies
-    # @description Run npm install for Node.js dependencies
+    # @task.description: Run npm install for Node.js dependencies
+    # @task.note: Production flag skips devDependencies for smaller footprint
+    # @task.warning: Can take significant time on first deployment
+    # @task.tag: deployment
     - name: Install npm dependencies
       npm:
         path: "/opt/{{ app_name }}/app"
@@ -120,10 +140,12 @@
         production: yes
       become_user: "{{ app_user }}"
       
-    # @title Configure application environment
-    # @description Deploy environment-specific configuration
-    # @param environment Target environment name
-    # @param node_env Node.js environment setting
+    # @task.description: Deploy environment-specific configuration
+    # @task.warning: File contains sensitive data - strict permissions required
+    # @task.note: Use Ansible Vault for sensitive configuration values
+    # @task.tag: configuration
+    # @task.tag: security
+    # FIXME(security): Implement secret rotation mechanism
     - name: Deploy environment configuration
       template:
         src: app-config.env.j2
@@ -133,8 +155,9 @@
         mode: '0600'
       notify: Restart application
       
-    # @title Create systemd service
-    # @description Configure systemd unit for application management
+    # @task.description: Configure systemd unit for application management
+    # @task.note: Systemd provides automatic restart and logging
+    # @task.tag: service
     - name: Create systemd service
       template:
         src: app.service.j2
@@ -144,17 +167,19 @@
         mode: '0644'
       notify: Reload systemd
       
-    # @title Start application service
-    # @description Ensure application is running and enabled at boot
+    # @task.description: Ensure application is running and enabled at boot
+    # @task.tag: service
     - name: Start application
       service:
         name: "{{ app_name }}"
         state: started
         enabled: yes
         
-    # @title Configure application firewall
-    # @description Open application port for load balancer
-    # @param app_port Application listening port
+    # @task.description: Open application port for load balancer
+    # @task.warning: Port restricted to load balancer IP only
+    # @task.note: Implements defense-in-depth by limiting source IPs
+    # @task.tag: firewall
+    # @task.tag: security
     - name: Allow application port
       ufw:
         rule: allow
@@ -173,8 +198,11 @@
     backup_retention_days: 7
     
   tasks:
-    # @title Install PostgreSQL
-    # @description Install PostgreSQL database server
+    # @task.description: Install PostgreSQL database server
+    # @task.note: PostgreSQL chosen for ACID compliance and reliability
+    # @task.tag: install
+    # @task.tag: database
+    # TODO: Add replication configuration for high availability
     - name: Install PostgreSQL
       apt:
         name:
