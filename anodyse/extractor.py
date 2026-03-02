@@ -172,9 +172,7 @@ def _extract_file_level_todos(source_text: str) -> list:
             todo_item = parse_todo(comment_text)
             if todo_item:
                 # Override source to "file"
-                todos.append(
-                    TodoItem(text=todo_item.text, author=todo_item.author, source="file")
-                )
+                todos.append(TodoItem(text=todo_item.text, author=todo_item.author, source="file"))
 
     return todos
 
