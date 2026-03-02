@@ -34,8 +34,8 @@ _TASK_META_KEYS = {
     "no_log",
 }
 
-_TASK_HEADER_RE = re.compile(r"^\s*-\s*name\s*:\s*.*$", re.IGNORECASE)
-_INLINE_COMMENT_RE = re.compile(r"^\s*-\s*name\s*:\s*.*?#\s*(.+)\s*$", re.IGNORECASE)
+_TASK_HEADER_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*$")  # Match indented - <key>: (tasks only, not plays)
+_INLINE_COMMENT_RE = re.compile(r"^\s+-\s*[\w.-]+\s*:\s*.*?#\s*(.+)\s*$")  # Match inline comment
 
 
 def _extract_task_comments_from_text(source_text: str) -> list[tuple[list[str], str | None]]:
@@ -79,8 +79,20 @@ def _extract_task_comments_from_text(source_text: str) -> list[tuple[list[str], 
 
 def _attach_task_comments_from_text(tasks: list[TaskData], source_text: str) -> None:
     """Attach raw block/inline comments to TaskData objects for extractor use."""
+    # Initialize default attributes for all tasks so downstream code can rely
+    # on their presence even when no comments are extracted for a task.
+    for task in tasks:
+        setattr(task, "_raw_block_comments", [])
+        setattr(task, "_raw_inline_comment", None)
+    
     extracted = _extract_task_comments_from_text(source_text)
-    for task, (block_comments, inline_comment) in zip(tasks, extracted):
+    
+    # Overwrite defaults for tasks where we actually extracted comments,
+    # up to the shorter of the two sequences to avoid index errors.
+    limit = min(len(tasks), len(extracted))
+    for index in range(limit):
+        block_comments, inline_comment = extracted[index]
+        task = tasks[index]
         setattr(task, "_raw_block_comments", block_comments)
         setattr(task, "_raw_inline_comment", inline_comment)
 
@@ -185,11 +197,17 @@ def parse_playbook(path: str) -> PlaybookData:
     post_tasks = _parse_tasks(play.get("post_tasks", []) or [])
     handlers = _parse_tasks(play.get("handlers", []) or [])
 
-    # Attach task-comment extraction from YAML source text
-    _attach_task_comments_from_text(tasks, source_text)
-    _attach_task_comments_from_text(pre_tasks, source_text)
-    _attach_task_comments_from_text(post_tasks, source_text)
-    _attach_task_comments_from_text(handlers, source_text)
+    # Attach task-comment extraction from YAML source text.
+    # We must process all task sections in a single pass so that comments
+    # are matched to tasks in global playbook order (pre_tasks, tasks,
+    # post_tasks, handlers), rather than restarting from the top of the
+    # file for each section.
+    all_tasks: list[TaskData] = []
+    all_tasks.extend(pre_tasks)
+    all_tasks.extend(tasks)
+    all_tasks.extend(post_tasks)
+    all_tasks.extend(handlers)
+    _attach_task_comments_from_text(all_tasks, source_text)
 
     # Extract roles referenced
     roles_list = []

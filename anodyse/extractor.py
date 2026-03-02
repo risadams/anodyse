@@ -150,27 +150,31 @@ def _extract_file_level_todos(source_text: str) -> list:
     todos = []
     lines = source_text.split("\n")
 
-    # Scan lines until we hit the first task (- name:) or play (- hosts:)
+    # Scan lines until we hit the start of YAML content
+    # Header TODOs are only taken from leading comment lines before any content.
     for line in lines:
         stripped = line.strip()
 
-        # Stop at first task/play definition
-        if stripped.startswith("- name:") or stripped.startswith("- hosts:"):
+        # Skip completely blank lines and the YAML document start marker
+        if not stripped or stripped == "---":
+            continue
+
+        # Stop at the first non-comment line (any YAML content: tasks, plays, vars, etc.)
+        if not stripped.startswith("#"):
             break
 
-        # Check if it's a comment line
-        if stripped.startswith("#"):
-            comment_text = stripped[1:].strip()
+        # At this point we know it's a comment line
+        comment_text = stripped[1:].strip()
 
-            # Classify and parse if TODO
-            comment_type = classify_comment(comment_text)
-            if comment_type == "todo":
-                todo_item = parse_todo(comment_text)
-                if todo_item:
-                    # Override source to "file"
-                    todos.append(
-                        TodoItem(text=todo_item.text, author=todo_item.author, source="file")
-                    )
+        # Classify and parse if TODO
+        comment_type = classify_comment(comment_text)
+        if comment_type == "todo":
+            todo_item = parse_todo(comment_text)
+            if todo_item:
+                # Override source to "file"
+                todos.append(
+                    TodoItem(text=todo_item.text, author=todo_item.author, source="file")
+                )
 
     return todos
 
@@ -192,6 +196,15 @@ def extract_task_annotations(task: TaskData) -> None:
     Args:
         task: TaskData instance with _raw_block_comments and _raw_inline_comment attributes
     """
+    # Reset annotation/prose/TODO fields to avoid duplicates on multiple calls
+    task.description = ""
+    task.notes = []
+    task.warnings = []
+    task.tags = []
+    task.block_comment = ""
+    task.inline_comment = ""
+    task.todos = []
+    
     # Process block comments if they exist
     if hasattr(task, "_raw_block_comments") and task._raw_block_comments:
         block_annotations = {}

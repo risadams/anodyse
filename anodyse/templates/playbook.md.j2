@@ -46,7 +46,11 @@ No warnings documented.
 No usage examples provided.
 {% endif %}
 
-{% if todos or tasks | selectattr('todos') | list | length > 0 %}
+{% if todos 
+    or tasks | selectattr('todos') | list | length > 0 
+    or pre_tasks | selectattr('todos') | list | length > 0 
+    or post_tasks | selectattr('todos') | list | length > 0 
+    or handlers | selectattr('todos') | list | length > 0 %}
 ## TODOs
 
 {%- set all_todos = [] %}
@@ -68,6 +72,11 @@ No usage examples provided.
 {%- set _ = all_todos.append({'location': 'Post: ' ~ task.name, 'author': todo.author or '-', 'text': todo.text}) %}
 {%- endfor %}
 {%- endfor %}
+{%- for task in handlers %}
+{%- for todo in task.todos %}
+{%- set _ = all_todos.append({'location': 'Handler: ' ~ task.name, 'author': todo.author or '-', 'text': todo.text}) %}
+{%- endfor %}
+{%- endfor %}
 
 | Location | Author | TODO |
 |----------|--------|------|
@@ -83,7 +92,10 @@ No usage examples provided.
 {%- set has_content = task_list | selectattr('description') | list | length > 0 
                       or task_list | selectattr('notes') | list | length > 0
                       or task_list | selectattr('warnings') | list | length > 0
-                      or task_list | selectattr('tags') | list | length > 0 %}
+                      or task_list | selectattr('tags') | list | length > 0
+                      or task_list | selectattr('block_comment') | list | length > 0
+                      or task_list | selectattr('inline_comment') | list | length > 0
+                      or task_list | selectattr('todos') | list | length > 0 %}
 {%- if has_content %}
 | Task | Description | Notes | Warnings | Tags |
 |------|-------------|-------|----------|------|
