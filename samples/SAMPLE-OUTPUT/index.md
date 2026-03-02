@@ -10,6 +10,8 @@
 
 | [Enterprise Application Stack Orchestrator](enterprise-application-stack-orchestrator.md) | playbook | enterprise, orchestration, production | Comprehensive deployment of a three-tier enterprise application stack with database cluster, application servers, load balancers, and monitoring |
 
+| [deploy-unannotated](deploy-unannotated.md) | playbook | — | Undocumented |
+
 | [Multi-Tier Application Stack Deployment](multi-tier-application-stack-deployment.md) | playbook | multi-tier, loadbalancer, high-availability | Deploy a complete 3-tier application stack with load balancer, app servers, and database |
 
 | [System Security Hardening](system-security-hardening.md) | playbook | security, hardening, compliance | Apply security hardening measures to Linux systems following CIS benchmarks |

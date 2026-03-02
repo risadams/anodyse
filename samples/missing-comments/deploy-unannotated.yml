@@ -1,0 +1,49 @@
+---
+- name: Minimal PostgreSQL Setup Without Documentation Comments
+  hosts: databases
+  become: true
+
+  vars:
+    postgres_version: "15"
+    postgres_data_dir: /var/lib/postgresql/15/main
+    postgres_listen_address: "*"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Install PostgreSQL packages
+      package:
+        name:
+          - postgresql
+          - postgresql-client
+        state: present
+
+    - name: Ensure PostgreSQL service is enabled and started
+      service:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Ensure data directory exists
+      file:
+        path: "{{ postgres_data_dir }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0700"
+
+    - name: Configure listen_addresses
+      lineinfile:
+        path: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
+        regexp: '^#?listen_addresses\s*='
+        line: "listen_addresses = '{{ postgres_listen_address }}'"
+      notify: Restart postgresql
+
+  handlers:
+    - name: Restart postgresql
+      service:
+        name: postgresql
+        state: restarted

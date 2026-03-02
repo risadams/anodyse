@@ -7,6 +7,7 @@ This directory contains representative Ansible playbooks for demonstration and t
 ```
 samples/
 ├── anodyse-template-overrides/ # Custom Anodyse output templates
+├── missing-comments/     # Playbook without Anodyse annotations
 ├── web-server/          # NGINX web server deployment
 ├── database/            # PostgreSQL database setup
 ├── docker-app/          # Docker container deployment
@@ -111,6 +112,23 @@ PowerShell (Windows):
 New-Item -ItemType Directory -Path .anodyse/templates -Force | Out-Null
 Copy-Item samples/anodyse-template-overrides/templates/*.j2 .anodyse/templates/
 anodyse samples/web-server/deploy-nginx.yml --output docs/custom-templates --verbose
+```
+
+### 7. Missing Required Comments (`missing-comments/`)
+**File:** `deploy-unannotated.yml`
+
+Demonstrates:
+- A playbook that intentionally omits Anodyse `@` annotation comments
+- Fallback markdown rendering behavior when metadata is missing
+
+Generate docs from unannotated sample:
+```bash
+anodyse samples/missing-comments/deploy-unannotated.yml --output docs/samples --verbose
+```
+
+PowerShell (Windows):
+```powershell
+anodyse samples/missing-comments/deploy-unannotated.yml --output docs/samples --verbose
 ```
 
 ## Using These Samples
