@@ -273,7 +273,9 @@ class TestRenderTaskProse:
             ],
         )
 
-    def test_render_task_description_falls_back_to_block_comment(self, playbook_with_prose_fallback):
+    def test_render_task_description_falls_back_to_block_comment(
+        self, playbook_with_prose_fallback
+    ):
         """Test that task description falls back to block_comment when no annotation exists."""
         output = render_playbook(playbook_with_prose_fallback)
 
@@ -300,6 +302,7 @@ class TestRenderTodos:
     def playbook_with_todos(self):
         """Create PlaybookData with TODOs."""
         from anodyse.models import TodoItem
+
         return PlaybookData(
             source_path="test.yml",
             title="Test Playbook",
@@ -349,10 +352,11 @@ class TestRenderTodos:
         """Test that TODO section is absent when no TODOs exist."""
         output = render_playbook(playbook_without_todos)
 
-        # Count TODO occurrences - should be minimal (might appear in template header comments)
-        # The key is there should be no "## TODO" or "## TODOs" section
+        # Count TODO section headers - should be none when no TODOs exist
         lines = output.split("\n")
-        todo_section_lines = [l for l in lines if l.startswith("## ") and "TODO" in l.upper()]
+        todo_section_lines = [
+            line for line in lines if line.startswith("## ") and "TODO" in line.upper()
+        ]
         assert len(todo_section_lines) == 0, "Should not have TODO section header when no TODOs"
 
     def test_render_todo_table_columns(self, playbook_with_todos):
@@ -364,7 +368,9 @@ class TestRenderTodos:
             # Check for column headers
             assert "Location" in output or "Source" in output, "Should have location/source column"
             assert "Author" in output, "Should have Author column"
-            assert "TODO" in output or "Description" in output, "Should have TODO/description column"
+            assert "TODO" in output or "Description" in output, (
+                "Should have TODO/description column"
+            )
 
     def test_render_todo_author_dash_when_none(self, playbook_with_todos):
         """Test that author shows '-' when None."""
@@ -380,7 +386,7 @@ class TestRenderTodos:
 
         # Check that file-level TODOs are rendered
         assert "Add post-deploy notification" in output, "File-level TODO should be in output"
-        
+
         # Check that File location is shown
         lines = output.split("\n")
         table_started = False
@@ -392,13 +398,14 @@ class TestRenderTodos:
                 # Found file-level TODO row
                 assert True
                 return
-        
+
         # If we get here, File location wasn't found
         assert False, f"Should have 'File' location in TODO table. Output:\n{output}"
 
     def test_render_index_todo_flag_present(self):
         """Test that index shows TODO flag when TODOs exist."""
         from anodyse.models import IndexEntry
+
         entry_with_todos = IndexEntry(
             title="Playbook With TODOs",
             source_path="/path/to/playbook.yml",
@@ -409,15 +416,16 @@ class TestRenderTodos:
             has_todos=True,
             todo_count=3,
         )
-        
+
         output = render_index([entry_with_todos])
-        
+
         # Should have some TODO indicator
         assert "3" in output or "TODO" in output or "⚠" in output, "Should show TODO indicator"
 
     def test_render_index_todo_count_shown(self):
         """Test that index shows TODO count."""
         from anodyse.models import IndexEntry
+
         entry = IndexEntry(
             title="Test",
             source_path="/test.yml",
@@ -428,9 +436,9 @@ class TestRenderTodos:
             has_todos=True,
             todo_count=5,
         )
-        
+
         output = render_index([entry])
-        
+
         assert "5" in output, "Should display TODO count"
 
 

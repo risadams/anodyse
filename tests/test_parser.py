@@ -159,7 +159,7 @@ class TestParsePlaybook:
         # Task 1 has block comments with potential blank lines
         task1 = data.tasks[1]
         if hasattr(task1, "_raw_block_comments") and task1._raw_block_comments:
-            # Check that the block can contain comments (blank lines are filtered if no comments exist)
+            # Check block comment region has content (blank lines filtered)
             assert len(task1._raw_block_comments) > 0
 
     def test_parser_no_cross_task_comment_bleed(self, playbook_task_annotated_path):
@@ -176,11 +176,15 @@ class TestParsePlaybook:
 
         # Task 0's specific content should not appear in task 1's comments
         if "Install runtime dependencies" in task0_text:
-            assert "Install runtime dependencies" not in task1_text, "Task 1 should not contain task 0's description"
+            assert "Install runtime dependencies" not in task1_text, (
+                "Task 1 should not contain task 0's description"
+            )
 
         # Task 1's specific content should not appear in task 0's comments
         if "application directory permissions" in task1_text:
-            assert "application directory permissions" not in task0_text, "Task 0 should not contain task 1's prose"
+            assert "application directory permissions" not in task0_text, (
+                "Task 0 should not contain task 1's prose"
+            )
 
 
 class TestParseRole:

@@ -65,13 +65,13 @@ def _extract_task_comments_from_text(source_text: str) -> list[tuple[list[str], 
             break
 
         block_lines.reverse()
-        
+
         # Filter block_lines to check if there's any actual comment content
         # (not just blank lines). If only blanks, clear the list.
         has_comment = any(line.strip().startswith("#") for line in block_lines)
         if not has_comment:
             block_lines = []
-        
+
         extracted.append((block_lines, inline_comment))
 
     return extracted

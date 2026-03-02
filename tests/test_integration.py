@@ -210,43 +210,45 @@ class TestFullPipeline:
     def test_full_pipeline_task_annotated_fixture(self, output_dir):
         """Test full pipeline with task-annotated fixture (T029)."""
         fixture_path = Path("tests/fixtures/playbook_task_annotated.yml")
-        
+
         # Step 1: Parse
         data = parse_playbook(str(fixture_path))
         assert data is not None
         assert len(data.tasks) == 4
-        
+
         # Step 2: Extract annotations
         source = fixture_path.read_text()
         data = extract(data, source)
-        
+
         # Verify task annotations were extracted
         assert data.tasks[0].description is not None, "Task 0 should have description"
         assert len(data.tasks[0].notes) > 0, "Task 0 should have notes"
         assert len(data.tasks[0].warnings) > 0, "Task 0 should have warnings"
-        
+
         # Verify prose was extracted
         assert data.tasks[1].block_comment is not None, "Task 1 should have block comment"
         assert data.tasks[0].inline_comment is not None, "Task 0 should have inline comment"
-        
+
         # Verify TODOs were extracted
         assert len(data.tasks[0].todos) > 0, "Task 0 should have TODOs"
         assert len(data.todos) > 0, "Playbook should have file-level TODOs"
-        
+
         # Verify TODO sources
         for todo in data.tasks[0].todos:
             assert todo.source == "task", "Task TODOs should have source='task'"
         for todo in data.todos:
             assert todo.source == "file", "File TODOs should have source='file'"
-        
+
         # Step 3: Render
         rendered = render_playbook(data)
         assert isinstance(rendered, str)
         assert len(rendered) > 0
-        
+
         # Verify render output contains expected content
-        assert data.tasks[0].description in rendered, "Rendered output should contain task description"
-        
+        assert data.tasks[0].description in rendered, (
+            "Rendered output should contain task description"
+        )
+
         # Step 4: Write output
         output_path = output_dir / "task-annotated.md"
         write_output(rendered, str(output_path))

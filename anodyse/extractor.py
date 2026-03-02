@@ -98,7 +98,7 @@ def extract(
     # Process task-level annotations (T016)
     for task in data.tasks:
         extract_task_annotations(task)
-    
+
     if isinstance(data, PlaybookData):
         for task in data.pre_tasks:
             extract_task_annotations(task)
@@ -146,34 +146,32 @@ def _extract_file_level_todos(source_text: str) -> list:
     Returns list of TodoItem instances with source="file".
     """
     from .models import TodoItem
-    
+
     todos = []
     lines = source_text.split("\n")
-    
+
     # Scan lines until we hit the first task (- name:) or play (- hosts:)
     for line in lines:
         stripped = line.strip()
-        
+
         # Stop at first task/play definition
         if stripped.startswith("- name:") or stripped.startswith("- hosts:"):
             break
-        
+
         # Check if it's a comment line
         if stripped.startswith("#"):
             comment_text = stripped[1:].strip()
-            
+
             # Classify and parse if TODO
             comment_type = classify_comment(comment_text)
             if comment_type == "todo":
                 todo_item = parse_todo(comment_text)
                 if todo_item:
                     # Override source to "file"
-                    todos.append(TodoItem(
-                        text=todo_item.text,
-                        author=todo_item.author,
-                        source="file"
-                    ))
-    
+                    todos.append(
+                        TodoItem(text=todo_item.text, author=todo_item.author, source="file")
+                    )
+
     return todos
 
 
@@ -198,59 +196,59 @@ def extract_task_annotations(task: TaskData) -> None:
     if hasattr(task, "_raw_block_comments") and task._raw_block_comments:
         block_annotations = {}
         block_prose_lines = []
-        
+
         for line in task._raw_block_comments:
             stripped = line.strip()
-            
+
             # Skip blank lines
             if not stripped:
                 continue
-            
+
             # Remove leading # and whitespace
             if stripped.startswith("#"):
                 comment_text = stripped[1:].strip()
-                
+
                 # Classify the comment
                 comment_type = classify_comment(comment_text)
-                
+
                 if comment_type == "annotation":
                     # Parse @task.* annotation
                     match = re.match(r"@task\.(\w+)\s*:\s*(.+)", comment_text, re.IGNORECASE)
                     if match:
                         tag = match.group(1).lower()
                         value = match.group(2).strip()
-                        
+
                         if tag not in block_annotations:
                             block_annotations[tag] = []
                         block_annotations[tag].append(value)
-                
+
                 elif comment_type == "todo":
                     # Parse TODO/FIXME
                     todo_item = parse_todo(comment_text)
                     if todo_item:
                         task.todos.append(todo_item)
-                
+
                 elif comment_type == "prose":
                     # Collect prose lines
                     block_prose_lines.append(comment_text)
-        
+
         # Populate task fields from annotations
         if "description" in block_annotations:
             task.description = block_annotations["description"][0]
-        
+
         if "note" in block_annotations:
             task.notes.extend(block_annotations["note"])
-        
+
         if "warning" in block_annotations:
             task.warnings.extend(block_annotations["warning"])
-        
+
         if "tag" in block_annotations:
             task.tags.extend(block_annotations["tag"])
-        
+
         # Set block_comment from prose lines
         if block_prose_lines:
             task.block_comment = " ".join(block_prose_lines)
-    
+
     # Process inline comment if it exists
     if hasattr(task, "_raw_inline_comment") and task._raw_inline_comment:
         # Inline comments are always prose (never structured)

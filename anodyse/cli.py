@@ -167,13 +167,13 @@ def main(
 
                 # Calculate TODO counts (T032)
                 todo_count = len(data.todos)
-                if hasattr(data, 'tasks'):
+                if hasattr(data, "tasks"):
                     todo_count += sum(len(t.todos) for t in data.tasks)
-                if hasattr(data, 'pre_tasks'):
+                if hasattr(data, "pre_tasks"):
                     todo_count += sum(len(t.todos) for t in data.pre_tasks)
-                if hasattr(data, 'post_tasks'):
+                if hasattr(data, "post_tasks"):
                     todo_count += sum(len(t.todos) for t in data.post_tasks)
-                if hasattr(data, 'handlers'):
+                if hasattr(data, "handlers"):
                     todo_count += sum(len(t.todos) for t in data.handlers)
 
                 entry = IndexEntry(

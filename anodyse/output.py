@@ -50,4 +50,3 @@ def write_output(
         slugified_path.write_text(content, encoding="utf-8")
     except OSError as e:
         raise OSError(f"Failed to write output file: {e}") from e
-
