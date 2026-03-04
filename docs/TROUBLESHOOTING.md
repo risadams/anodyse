@@ -297,6 +297,64 @@ Common issues and solutions when integrating Anodyse into your CI/CD pipeline.
        path: ./docs.tar.gz
    ```
 
+### GitHub Actions FAQ
+
+**Q: How do I run my workflow only on pushes to main, not on all branches?**
+
+A: Use the `branches` filter in your `on:` trigger:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+```
+
+**Q: Can I run different steps on push vs. pull request?**
+
+A: Yes, use conditional `if` statements:
+
+```yaml
+      - name: Deploy (push only)
+        if: github.event_name == 'push'
+        run: echo "Deploying to production"
+      
+      - name: Preview (PR only)
+        if: github.event_name == 'pull_request'
+        run: echo "Preview artifacts available"
+```
+
+**Q: How do I pass secrets to my workflow?**
+
+A: Store secrets in repository Settings → Secrets → Actions, then reference via `${{ secrets.SECRET_NAME }}`:
+
+```yaml
+      - name: Deploy
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+        run: python -m anodyse --api-key $API_KEY
+```
+
+**Q: My workflow is slow. How can I speed it up?**
+
+A: Enable caching for pip dependencies:
+
+```yaml
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'  # Caches ~/.cache/pip
+```
+
+**Q: How do I skip running a workflow for certain commits?**
+
+A: Add `[skip ci]` or `[ci skip]` to commit message:
+
+```bash
+git commit -m "docs: Update README [skip ci]"
+git push
+```
+
 ---
 
 ## GitLab CI/CD

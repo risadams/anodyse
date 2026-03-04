@@ -8,31 +8,31 @@
 
 ---
 
-## Phase 0: Project Setup & Infrastructure
+## Phase 0: Project Setup & Infrastructure ✅ COMPLETE
 
 **Purpose**: Foundation and shared resources for all user stories
 
-- [ ] T001 Create documentation directory structure in `docs/ci-integration/`
-- [ ] T002 Create example workflows directory `docs/examples/workflows/`
-- [ ] T003 Create templates directory `docs/examples/templates/` (for custom template examples)
-- [ ] T004 Set up GitHub repository for dogfooding: Create `.github/workflows/` directory
-- [ ] T005 Set up GitLab pipeline placeholder (if testing on GitLab instance)
-- [ ] T006 Create contribution guide for CI integration examples in `docs/CI_EXAMPLES_CONTRIBUTING.md`
+- [X] T001 Create documentation directory structure in `docs/ci-integration/`
+- [X] T002 Create example workflows directory `docs/examples/workflows/`
+- [X] T003 Create templates directory `docs/examples/templates/` (for custom template examples)
+- [X] T004 Set up GitHub repository for dogfooding: Create `.github/workflows/` directory
+- [X] T005 Set up GitLab pipeline placeholder (if testing on GitLab instance)
+- [X] T006 Create contribution guide for CI integration examples in `docs/CI_EXAMPLES_CONTRIBUTING.md`
 
 ---
 
-## Phase 1: Foundational Documentation (Blocking Prerequisites)
+## Phase 1: Foundational Documentation (Blocking Prerequisites) ✅ COMPLETE
 
 **Purpose**: Documentation that all user stories depend on
 
-- [ ] T010 Create main CI integration guide: `docs/CI_INTEGRATION.md` covering overview, platform selection, and cross-platform concepts
-- [ ] T011 [P] Create GitHub Actions introduction section in `docs/CI_INTEGRATION.md#github-actions` with platform overview
-- [ ] T012 [P] Create GitLab CI introduction section in `docs/CI_INTEGRATION.md#gitlab-ci` with platform overview
-- [ ] T013 [P] Create generic CI patterns introduction in `docs/CI_INTEGRATION.md#generic-ci` with common patterns
-- [ ] T014 Create publishing guide: `docs/PUBLISHING.md` covering GitHub Pages, GitLab Pages, Read the Docs, and static hosting
-- [ ] T015 Create troubleshooting guide: `docs/TROUBLESHOOTING.md` with common errors and solutions
-- [ ] T016 Create environment variable reference: `docs/ENVIRONMENT_VARIABLES.md` documenting all ANODYSE_* variables
-- [ ] T017 Finalize and validate quickstart guide: `specs/003-ci-workflow-setup/quickstart.md`
+- [X] T010 Create main CI integration guide: `docs/CI_INTEGRATION.md` covering overview, platform selection, and cross-platform concepts
+- [X] T011 [P] Create GitHub Actions introduction section in `docs/CI_INTEGRATION.md#github-actions` with platform overview
+- [X] T012 [P] Create GitLab CI introduction section in `docs/CI_INTEGRATION.md#gitlab-ci` with platform overview
+- [X] T013 [P] Create generic CI patterns introduction in `docs/CI_INTEGRATION.md#generic-ci` with common patterns
+- [X] T014 Create publishing guide: `docs/PUBLISHING.md` covering GitHub Pages, GitLab Pages, Read the Docs, and static hosting
+- [X] T015 Create troubleshooting guide: `docs/TROUBLESHOOTING.md` with common errors and solutions
+- [X] T016 Create environment variable reference: `docs/ENVIRONMENT_VARIABLES.md` documenting all ANODYSE_* variables
+- [X] T017 Finalize and validate quickstart guide: `specs/003-ci-workflow-setup/quickstart.md`
 
 ---
 
@@ -52,25 +52,25 @@
 
 ### US1 Tasks: GitHub Actions Setup & Documentation
 
-- [ ] T101 [P] [US1] Create GitHub Actions reference contract: `docs/github-actions-reference.md` with schema and customization examples
-- [ ] T102 [P] [US1] Create GitHub Actions basic workflow example: `docs/examples/workflows/github-actions-basic.yml`
+- [X] T101 [P] [US1] Create GitHub Actions reference contract: `docs/examples/github-actions-reference.md` with schema and customization examples
+- [X] T102 [P] [US1] Create GitHub Actions basic workflow example: `docs/examples/workflows/github-actions-basic.yml`
   - Inputs: default paths (./playbooks, ./docs)
   - Triggers: push to main, PR to main, manual
   - Output: artifact upload
-- [ ] T103 [P] [US1] Create GitHub Actions advanced workflow with GitHub Pages: `docs/examples/workflows/github-actions-with-github-pages.yml`
+- [X] T103 [P] [US1] Create GitHub Actions advanced workflow with GitHub Pages: `docs/examples/workflows/github-actions-with-github-pages.yml`
   - Includes basic workflow functionality
   - Adds GitHub Pages deployment on push to main
   - Demonstrates conditional deployment
-- [ ] T104 [P] [US1] Create GitHub Actions all-triggers workflow: `docs/examples/workflows/github-actions-all-triggers.yml`
+- [X] T104 [P] [US1] Create GitHub Actions all-triggers workflow: `docs/examples/workflows/github-actions-all-triggers.yml`
   - Push, PR, schedule, manual triggers
   - Shows how to enable/disable each trigger
-- [ ] T105 [US1] Create GitHub Actions section in `docs/CI_INTEGRATION.md`:
+- [X] T105 [US1] Create GitHub Actions section in `docs/CI_INTEGRATION.md`:
   - Installation steps (3 steps)
   - Configuration walkthrough (env vars, paths, triggers)
   - Step-by-step copy-paste guide
   - Common customizations (branches, artifacts, templates)
   - Troubleshooting (7+ common issues specific to GitHub Actions)
-- [ ] T106 [P] [US1] Create GitHub Actions template customization example: `docs/examples/github-actions-custom-templates.yml`
+- [X] T106 [P] [US1] Create GitHub Actions template customization example: `docs/examples/workflows/github-actions-custom-templates.yml`
   - Show how to reference custom template directory
   - Show how to clone external templates
 - [ ] T107 [US1] Test GitHub Actions workflow locally with act or in GitHub repository
@@ -78,7 +78,7 @@
   - Verify artifacts generated correctly
   - Verify workflow runs on PR (no publish)
   - Verify scheduled run creates artifacts
-- [ ] T108 [US1] Create GitHub Actions FAQ section in troubleshooting: `docs/TROUBLESHOOTING.md#github-actions`
+- [X] T108 [US1] Create GitHub Actions FAQ section in troubleshooting: `docs/TROUBLESHOOTING.md#github-actions`
   - Workflow not triggering
   - Artifacts not found
   - GitHub Pages deployment failing
