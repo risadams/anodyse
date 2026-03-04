@@ -1,0 +1,162 @@
+name: Validate Docs on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  validate:
+    name: Validate Documentation Generation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Anodyse
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e .
+      
+      - name: Check for sample playbooks
+        run: |
+          if [[ ! -d "samples" ]] || [[ -z "$(find samples -name '*.yml' 2>/dev/null)" ]]; then
+            echo "✓ No sample playbooks to validate"
+            exit 0
+          fi
+          echo "✓ Found sample playbooks"
+      
+      - name: Validate documentation can be generated
+        id: validate
+        run: |
+          set -e
+          echo "Validating documentation generation..."
+          mkdir -p /tmp/generated-docs
+          
+          sample_count=0
+          success_count=0
+          warning_count=0
+          failed_samples=""
+          
+          # Skip these directories:
+          # - SAMPLE-OUTPUT: output examples, not playbooks
+          # - anodyse-template-overrides: custom templates, not playbooks
+          # - missing-comments: intentionally missing annotations (generates exit code 2)
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides" "missing-comments")
+          
+          for sample in samples/*/; do
+            if [[ ! -d "$sample" ]]; then
+              continue
+            fi
+            
+            sample_name=$(basename "$sample")
+            
+            # Check if this directory should be skipped
+            should_skip=false
+            for skip in "${skip_dirs[@]}"; do
+              if [[ "$sample_name" == "$skip" ]]; then
+                should_skip=true
+                break
+              fi
+            done
+            
+            if [[ "$should_skip" == "true" ]]; then
+              echo "Skipping: $sample_name"
+              continue
+            fi
+            
+            sample_count=$((sample_count + 1))
+            echo "Testing: $sample_name"
+            
+            set +e
+            anodyse "$sample" --output "/tmp/generated-docs" 2>/tmp/${sample_name}.log
+            exit_code=$?
+            set -e
+            
+            if [[ $exit_code -eq 0 ]]; then
+              success_count=$((success_count + 1))
+              echo "  ✓ Success"
+            elif [[ $exit_code -eq 2 ]]; then
+              # Exit code 2 = warnings (documentation generated but missing annotations)
+              warning_count=$((warning_count + 1))
+              success_count=$((success_count + 1))
+              echo "  ⚠ Generated with warnings"
+            else
+              echo "  ✗ Failed (exit code: $exit_code)"
+              failed_samples="$failed_samples\n  - $sample_name"
+            fi
+          done
+          
+          echo ""
+          echo "## Summary"
+          echo "Total samples: $sample_count"
+          echo "Successful: $success_count"
+          echo "With warnings: $warning_count"
+          echo "Failed: $((sample_count - success_count))"
+          
+          if [[ $sample_count -eq 0 ]]; then
+            echo "✓ No samples to validate"
+            exit 0
+          elif [[ $success_count -eq $sample_count ]]; then
+            echo "✓ All documentation generation passed"
+            exit 0
+          else
+            echo "✗ Some documentation generation failed:$failed_samples"
+            exit 1
+          fi
+      
+      - name: Generate test report
+        if: always()
+        run: |
+          # Generate a summary for the PR
+          cat > /tmp/validation-report.md << 'EOF'
+          # Documentation Validation Report
+          
+          **Status**: ${{ steps.validate.outcome }}
+          
+          ## What was tested
+          - ✓ Anodyse CLI installed correctly
+          - ✓ Sample playbooks found
+          - ✓ Documentation generation attempted for each sample
+          
+          ## Next steps
+          If validation failed, check:
+          1. Sample playbook syntax is valid YAML
+          2. Playbook contains required metadata
+          3. All referenced files exist relative to sample directory
+          
+          See CI logs for detailed error messages.
+          EOF
+          
+          cat /tmp/validation-report.md
+      
+      - name: Comment PR with results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const outcome = '${{ steps.validate.outcome }}';
+            const emoji = outcome === 'success' ? '✅' : '❌';
+            const status = outcome === 'success' ? 'passes' : 'does not pass';
+            
+            const comment = `${emoji} **Documentation validation**: ${outcome}\n\nThis PR ${status} documentation generation.\n\nSee the [workflow run](https://github.com/${ context.repo.owner }/${ context.repo.repo }/actions/runs/${{ github.run_id }}) for details.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

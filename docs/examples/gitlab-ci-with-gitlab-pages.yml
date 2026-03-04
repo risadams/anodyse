@@ -1,0 +1,161 @@
+# GitLab CI/CD Pipeline: Anodyse with GitLab Pages Publishing
+# Copy this file to .gitlab-ci.yml and customize paths
+
+stages:
+  - generate
+  - publish
+
+variables:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+  PAGES_OUTPUT_DIR: ./public
+
+generate_docs:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Generate documentation in markdown format
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path $ANODYSE_OUTPUT_DIR
+    
+    # Verify generated files exist
+    - test -d "$ANODYSE_OUTPUT_DIR" || (echo "No docs generated!"; exit 1)
+    - echo "Generated documentation in $ANODYSE_OUTPUT_DIR"
+    - ls -la "$ANODYSE_OUTPUT_DIR/"
+  
+  artifacts:
+    paths:
+      - $ANODYSE_OUTPUT_DIR/
+    expire_in: 30 days
+  
+  # Run on main branch, merge requests, and schedule
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+  
+  timeout: 10 minutes
+
+# Publish to GitLab Pages
+# This creates a static website accessible at:
+# https://[group].gitlab.io/[project-name]/
+pages:
+  stage: publish
+  image: alpine:latest
+  
+  script:
+    # Copy generated docs to public/ directory for Pages deployment
+    - mkdir -p $PAGES_OUTPUT_DIR
+    - cp -r $ANODYSE_OUTPUT_DIR/* $PAGES_OUTPUT_DIR/ || true
+    
+    # Create index page if not present
+    - |
+      if [ ! -f "$PAGES_OUTPUT_DIR/index.md" ]; then
+        cat > "$PAGES_OUTPUT_DIR/index.html" << 'EOF'
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Ansible Documentation</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; }
+            h1 { color: #333; }
+            ul { list-style: none; padding: 0; }
+            li { margin: 10px 0; }
+            a { color: #0066cc; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <h1>Ansible Documentation</h1>
+          <p>Generated with <a href="https://github.com/acuity-inc/anodyse">Anodyse</a></p>
+          <p>Last updated: $(date)</p>
+          <ul>
+            <li><a href="index.md">Documentation Index</a></li>
+          </ul>
+        </body>
+      </html>
+      EOF
+      fi
+    
+    # List published files
+    - echo "Published files to $PAGES_OUTPUT_DIR:"
+    - ls -la "$PAGES_OUTPUT_DIR/"
+  
+  artifacts:
+    paths:
+      - $PAGES_OUTPUT_DIR
+    expire_in: 30 days
+  
+  # Only publish from main branch
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success  # Only after generate_docs succeeds
+    - when: never
+  
+  environment:
+    name: production
+    url: https://$CI_PROJECT_NAMESPACE.gitlab.io/$CI_PROJECT_NAME/
+  
+  timeout: 5 minutes
+
+# CUSTOMIZATION GUIDE
+#
+# 1. Enable GitLab Pages in Project Settings:
+#    Settings → Pages → Enable Public/Internal access
+#
+# 2. Publish to custom domain:
+#    environment:
+#      url: https://docs.example.com/
+#
+# 3. Different docs per branch:
+#    pages:
+#      environment:
+#        name: staging
+#      rules:
+#        - if: '$CI_COMMIT_BRANCH == "develop"'
+#
+# 4. Add comment to merge request with artifact location:
+#    After generate_docs, before pages:
+#    script:
+#      - echo "Preview: $CI_PAGES_URL" > /tmp/comment.txt
+#      # Note: GitLab API comments require additional setup
+#
+# 5. Keep multiple versions of documentation:
+#    script:
+#      - mkdir -p $PAGES_OUTPUT_DIR/$CI_COMMIT_TAG
+#      - cp -r $ANODYSE_OUTPUT_DIR/* $PAGES_OUTPUT_DIR/$CI_COMMIT_TAG/
+#      - cp -r $ANODYSE_OUTPUT_DIR/* $PAGES_OUTPUT_DIR/latest/
+#
+# 6. Add custom CSS/styling:
+#    script:
+#      - cp assets/custom.css $PAGES_OUTPUT_DIR/
+#      - cp assets/favicon.ico $PAGES_OUTPUT_DIR/
+#
+# 7. Conditional deployment only on merge request approval:
+#    rules:
+#      - if: '$CI_COMMIT_BRANCH == "main" && $MERGED_BY != null'
+#        when: on_success
+#
+# 8. Deploy only on git tags:
+#    rules:
+#      - if: '$CI_COMMIT_TAG'
+#        when: on_success
+#      - when: never
+#
+# 9. Expire documentation after time period:
+#    artifacts:
+#      expire_in: 90 days  # Keep for 90 days, then auto-delete
+#
+# 10. Custom Pages domain and SSL:
+#     # Set in GitLab UI: Settings → Pages → Add domain
+#     # Auto-enabled with Let's Encrypt certificate

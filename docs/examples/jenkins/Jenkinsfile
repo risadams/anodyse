@@ -1,0 +1,370 @@
+// Jenkins Pipeline: Anodyse Documentation Generation
+// 
+// Declarative Pipeline example for integrating Anodyse into Jenkins
+// Copy this file to Jenkinsfile in your repository root
+//
+// Features:
+// - Generates Ansible documentation on push and pull requests
+// - Stores generated docs as artifacts
+// - Optional publishing to Jenkins artifact repository
+// - Error handling and validation
+//
+
+pipeline {
+    agent any
+    
+    // ======================================================
+    // Environment variables
+    // ======================================================
+    
+    environment {
+        // Anodyse CLI configuration
+        ANODYSE_INPUT_DIR = './playbooks'
+        ANODYSE_OUTPUT_DIR = './docs/generated'
+        ANODYSE_TEMPLATE_DIR = './templates'
+        
+        // Jenkins-specific variables
+        WORKSPACE_PATH = "${WORKSPACE}"
+        BUILD_ARTIFACTS = "${WORKSPACE}/${ANODYSE_OUTPUT_DIR}"
+    }
+    
+    // ======================================================
+    // Build triggers
+    // ======================================================
+    
+    triggers {
+        // Trigger on push to any branch
+        githubPush()
+        
+        // Trigger on pull request (if using GitHub)
+        // githubPullRequest()
+        
+        // Trigger on poll (if GitHub integration unavailable)
+        // pollSCM('H * * * *')  // Poll every hour
+    }
+    
+    // ======================================================
+    // Build stages
+    // ======================================================
+    
+    stages {
+        // ======================================================
+        // Stage 1: Setup
+        // ======================================================
+        
+        stage('Setup') {
+            steps {
+                script {
+                    echo "=========================================="
+                    echo "Anodyse Documentation Generation"
+                    echo "=========================================="
+                    echo ""
+                    echo "Job:        ${JOB_NAME}"
+                    echo "Build:      ${BUILD_NUMBER}"
+                    echo "Branch:     ${GIT_BRANCH}"
+                    echo "Commit:     ${GIT_COMMIT}"
+                    echo "Workspace:  ${WORKSPACE_PATH}"
+                    echo ""
+                }
+                
+                // Verify Python is available
+                sh '''
+                    echo "Verifying Python installation..."
+                    python3 --version
+                    pip3 --version
+                '''
+            }
+        }
+        
+        // ======================================================
+        // Stage 2: Prepare
+        // ======================================================
+        
+        stage('Prepare') {
+            steps {
+                script {
+                    echo "Preparing environment..."
+                }
+                
+                // Verify input directory exists
+                sh '''
+                    if [ ! -d "$ANODYSE_INPUT_DIR" ]; then
+                        echo "ERROR: Input directory not found: $ANODYSE_INPUT_DIR"
+                        exit 1
+                    fi
+                    
+                    echo "Input directory: $ANODYSE_INPUT_DIR"
+                    echo "Files found:"
+                    find "$ANODYSE_INPUT_DIR" -name "*.yml" -o -name "*.yaml" | head -10
+                '''
+                
+                // Create virtual environment
+                sh '''
+                    echo "Creating Python virtual environment..."
+                    python3 -m venv "${WORKSPACE}/.venv"
+                    
+                    # Activate virtual environment
+                    . "${WORKSPACE}/.venv/bin/activate"
+                    
+                    echo "Python version:"
+                    python --version
+                    
+                    # Upgrade pip
+                    pip install --upgrade pip setuptools wheel
+                '''
+            }
+        }
+        
+        // ======================================================
+        // Stage 3: Install
+        // ======================================================
+        
+        stage('Install') {
+            steps {
+                script {
+                    echo "Installing Anodyse..."
+                }
+                
+                sh '''
+                    # Activate virtual environment
+                    . "${WORKSPACE}/.venv/bin/activate"
+                    
+                    # Install Anodyse
+                    pip install anodyse
+                    
+                    # Verify installation
+                    echo "Anodyse installed:"
+                    python -m anodyse --version
+                '''
+            }
+        }
+        
+        // ======================================================
+        // Stage 4: Generate
+        // ======================================================
+        
+        stage('Generate') {
+            steps {
+                script {
+                    echo "Generating documentation..."
+                }
+                
+                sh '''
+                    # Activate virtual environment
+                    . "${WORKSPACE}/.venv/bin/activate"
+                    
+                    # Create output directory
+                    mkdir -p "$ANODYSE_OUTPUT_DIR"
+                    
+                    # Generate documentation
+                    python -m anodyse \
+                        --input-path "$ANODYSE_INPUT_DIR" \
+                        --output-path "$ANODYSE_OUTPUT_DIR"
+                    
+                    # Verify generated files
+                    echo ""
+                    echo "Generated documentation:"
+                    ls -lah "$ANODYSE_OUTPUT_DIR/"
+                    
+                    # Count files
+                    FILE_COUNT=$(find "$ANODYSE_OUTPUT_DIR" -name "*.md" | wc -l)
+                    echo ""
+                    echo "Total markdown files: $FILE_COUNT"
+                '''
+            }
+        }
+        
+        // ======================================================
+        // Stage 5: Verify
+        // ======================================================
+        
+        stage('Verify') {
+            steps {
+                script {
+                    echo "Verifying output..."
+                }
+                
+                sh '''
+                    # Check for index.md
+                    if [ ! -f "$ANODYSE_OUTPUT_DIR/index.md" ]; then
+                        echo "ERROR: index.md not generated"
+                        exit 1
+                    fi
+                    
+                    echo "✓ index.md found"
+                    
+                    # Check for other expected files
+                    if [ -f "$ANODYSE_OUTPUT_DIR/index.md" ]; then
+                        echo "✓ Documentation structure validated"
+                    fi
+                '''
+            }
+        }
+        
+        // ======================================================
+        // Stage 6: Archive
+        // ======================================================
+        
+        stage('Archive') {
+            steps {
+                script {
+                    echo "Archiving artifacts..."
+                }
+                
+                // Archive generated documentation
+                archiveArtifacts(
+                    artifacts: "${ANODYSE_OUTPUT_DIR}/**",
+                    fingerprint: true,
+                    allowEmptyArchive: false
+                )
+                
+                script {
+                    echo "Artifacts archived successfully"
+                }
+            }
+        }
+    }
+    
+    // ======================================================
+    // Post-build actions
+    // ======================================================
+    
+    post {
+        // Run regardless of success/failure
+        always {
+            script {
+                echo "Cleaning up..."
+                sh '''
+                    # Remove virtual environment to save space
+                    rm -rf "${WORKSPACE}/.venv"
+                '''
+            }
+        }
+        
+        // Run on success
+        success {
+            script {
+                currentBuild.result = 'SUCCESS'
+                echo "✓ Pipeline completed successfully"
+            }
+        }
+        
+        // Run on failure
+        failure {
+            script {
+                currentBuild.result = 'FAILURE'
+                echo "✗ Pipeline failed"
+            }
+        }
+        
+        // Run on unstable (warnings treated as errors)
+        unstable {
+            script {
+                echo "Pipeline unstable - check logs for warnings"
+            }
+        }
+    }
+}
+
+// ======================================================
+// CUSTOMIZATION GUIDE
+// ======================================================
+//
+// 1. CHANGE INPUT/OUTPUT PATHS:
+//    Modify environment variables at top:
+//    ANODYSE_INPUT_DIR = './your-playbooks'
+//    ANODYSE_OUTPUT_DIR = './your-docs'
+//
+// 2. ADD CUSTOM TEMPLATES:
+//    ANODYSE_TEMPLATE_DIR = './your-templates'
+//    Then add --template-dir in Generate stage
+//
+// 3. TRIGGER ON SPECIFIC BRANCHES:
+//    pipeline {
+//        triggers {
+//            githubPush(triggerOnPush: true, 
+//                       triggerOnPR: false)
+//        }
+//    }
+//
+// 4. PUBLISH TO ARTIFACTORY (optional):
+//    Add after Archive stage:
+//    stage('Publish') {
+//        steps {
+//            script {
+//                sh '''
+//                    curl -u $ARTIFACTORY_CREDENTIALS \
+//                      -T "$ANODYSE_OUTPUT_DIR/**" \
+//                      "https://artifactory.example.com/docs/${BUILD_NUMBER}/"
+//                '''
+//            }
+//        }
+//    }
+//
+// 5. SEND NOTIFICATIONS:
+//    Add in post section:
+//    post {
+//        failure {
+//            emailext(
+//                subject: "Build $BUILD_NUMBER failed",
+//                to: "team@example.com",
+//                body: "Check: $BUILD_URL"
+//            )
+//        }
+//    }
+//
+// 6. USE JENKINS CREDENTIALS:
+//    steps {
+//        withCredentials([
+//            usernamePassword(
+//                credentialsId: 'my-credentials',
+//                usernameVariable: 'USERNAME',
+//                passwordVariable: 'PASSWORD'
+//            )
+//        ]) {
+//            sh 'echo $USERNAME'
+//        }
+//    }
+//
+// 7. PARALLEL STAGES (multiple Python versions):
+//    stage('Generate') {
+//        parallel {
+//            stage('Python 3.11') {
+//                steps {
+//                    sh 'python3.11 -m anodyse ...'
+//                }
+//            }
+//            stage('Python 3.12') {
+//                steps {
+//                    sh 'python3.12 -m anodyse ...'
+//                }
+//            }
+//        }
+//    }
+//
+// 8. CONDITIONAL STAGES:
+//    stage('Publish') {
+//        when {
+//            branch 'main'
+//        }
+//        steps {
+//            sh 'publish-docs.sh'
+//        }
+//    }
+//
+// 9. ERROR HANDLING:
+//    steps {
+//        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+//            sh 'command-that-might-fail'
+//        }
+//    }
+//
+// 10. SETUP IN JENKINS UI:
+//     1. New Item → Pipeline
+//     2. Name: anodyse-docs-generator
+//     3. Pipeline → Definition: Pipeline script from SCM
+//     4. SCM: Git
+//     5. Repository URL: https://github.com/your-repo.git
+//     6. Branch: */main
+//     7. Script Path: Jenkinsfile
+//     8. Save and Run

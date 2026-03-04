@@ -54,6 +54,77 @@ Typical output:
 - `docs/samples/index.md`
 - one markdown file per discovered playbook/role
 
+## 🚀 Using Anodyse in CI/CD
+
+Integrate Anodyse into your CI/CD pipeline to automatically generate documentation on every commit, pull request, or schedule.
+
+### Interactive Demo
+
+**This repository demonstrates the feature in action!** See:
+- 📖 **[Sample Generated Documentation](./samples/README-DOCS.md)** - How the workflows work
+- 📋 **[GitHub Actions Workflows](./.github/workflows/)** - Copy these to your own repo
+- 🔗 **Generated Samples**: Published to GitHub Pages (when available)
+
+### Integration Guides
+
+Choose your platform for detailed setup instructions:
+
+- **[CI Integration Guide](./docs/CI_INTEGRATION.md)** - Complete reference for all platforms
+- **[GitHub Actions](./docs/CI_INTEGRATION.md#github-actions-integration)** - 5-minute setup
+- **[GitLab CI/CD](./docs/CI_INTEGRATION.md#gitlab-cicd-integration)** - 5-minute setup
+- **[Generic CI Patterns](./docs/GENERIC_CI_INTEGRATION.md)** - Jenkins, Woodpecker, CircleCI, Travis, or custom
+- **[Publishing Guide](./docs/PUBLISHING.md)** - Publish to GitHub Pages, GitLab Pages, S3, and more
+- **[Platform Comparison](./docs/CI_PLATFORM_SUPPORT.md)** - Choose the right platform for your needs
+
+### Quick Start (GitHub Actions)
+
+1. Copy this workflow to `.github/workflows/anodyse-docs.yml`:
+
+```yaml
+name: Generate Docs
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install anodyse
+      - run: python -m anodyse . --output ./docs --verbose
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./docs
+      - uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+```
+
+2. Commit and push to `main` - workflow runs automatically!
+3. See generated docs on GitHub Pages
+
+### All Supported Platforms
+
+| Platform | Setup | Difficulty | Notes |
+|----------|-------|-----------|-------|
+| **GitHub Actions** | 10 min | Beginner | Built-in to GitHub, free tier generous |
+| **GitLab CI/CD** | 10 min | Beginner | Built-in to GitLab, 400 min/month free |
+| **CircleCI** | 15 min | Intermediate | Cloud-based, 6,000 credits/month free |
+| **Jenkins** | 20 min | Intermediate | Self-hosted, on-premise support |
+| **Woodpecker** | 15 min | Intermediate | Modern Drone fork, lightweight |
+| **Travis CI** | 10 min | Beginner | ⚠️ Legacy platform, consider GitHub/GitLab |
+| **Generic Script** | 15 min | Intermediate | Use with any CI system or shell |
+
+See [CI Platform Support Matrix](./docs/CI_PLATFORM_SUPPORT.md) for detailed comparison.
+
 ## CLI
 
 ```text

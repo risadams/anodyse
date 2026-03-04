@@ -1,0 +1,145 @@
+name: Generate & Publish Ansible Documentation (Advanced)
+
+# Triggers - combine push, PR, schedule, and manual
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Every Monday at 2 AM UTC
+    - cron: '0 2 * * MON'
+  workflow_dispatch:
+
+# Environment variables
+env:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./public
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    # GitHub Pages deployment requires write permissions
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Anodyse
+        run: |
+          pip install --upgrade pip
+          pip install anodyse
+      
+      # Generate documentation with verbose logging for debugging
+      - name: Generate Documentation
+        env:
+          ANODYSE_VERBOSE: 'true'
+        run: |
+          mkdir -p ${{ env.ANODYSE_OUTPUT_DIR }}
+          python -m anodyse \
+            --input-path ${{ env.ANODYSE_INPUT_DIR }} \
+            --output-path ${{ env.ANODYSE_OUTPUT_DIR }}
+      
+      # Verify documentation was generated
+      - name: Verify Documentation
+        run: |
+          if [ -f "${{ env.ANODYSE_OUTPUT_DIR }}/index.md" ]; then
+            echo "✓ Documentation generated successfully"
+            echo "Files generated:"
+            find ${{ env.ANODYSE_OUTPUT_DIR }} -type f | wc -l
+          else
+            echo "✗ Documentation generation failed: index.md not found"
+            exit 1
+          fi
+      
+      # Upload artifacts for manual review (all events)
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ansible-docs-${{ github.run_number }}
+          path: ${{ env.ANODYSE_OUTPUT_DIR }}
+          retention-days: 30
+      
+      # Deploy to GitHub Pages (only on push to main)
+      # This publishes docs to https://username.github.io/repository-name
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ env.ANODYSE_OUTPUT_DIR }}
+          # For custom domain (optional):
+          # cname: docs.company.com
+      
+      # Optional: Create a comment on PRs with link to artifacts
+      - name: Comment on Pull Request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '📚 Generated documentation is available in the Artifacts section of this workflow run. [View artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})'
+            })
+
+# ADVANCED CUSTOMIZATIONS
+#
+# 1. Only publish from specific branches:
+#    - name: Deploy to GitHub Pages
+#      if: |
+#        github.event_name == 'push' &&
+#        github.ref == 'refs/heads/main'
+#      uses: peaceiris/actions-gh-pages@v3
+#
+# 2. Publish to custom staging path for non-main branches:
+#    - name: Determine publish directory
+#      id: publish-path
+#      run: |
+#        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+#          echo "path=./public" >> $GITHUB_OUTPUT
+#        else
+#          echo "path=./public/${{ github.ref_name }}" >> $GITHUB_OUTPUT
+#        fi
+#
+# 3. Skip documentation on draft PRs:
+#    - name: Generate Documentation
+#      if: '!github.event.pull_request.draft'
+#      run: |
+#        python -m anodyse \
+#          --input-path ./playbooks \
+#          --output-path ./public
+#
+# 4. Use matrix to build for multiple Python versions:
+#    strategy:
+#      matrix:
+#        python-version: ['3.11', '3.12']
+#    steps:
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#      - run: |
+#          python -m anodyse \
+#            --input-path ./playbooks \
+#            --output-path ./public/py${{ matrix.python-version }}
+#
+# 5. Notify on failure:
+#    - name: Notify on failure
+#      if: failure()
+#      run: |
+#        # Send notification (Slack, Teams, email, etc.)
+#        echo "Documentation generation failed"

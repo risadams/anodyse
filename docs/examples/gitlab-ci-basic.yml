@@ -1,0 +1,79 @@
+# GitLab CI/CD Pipeline: Basic Anodyse Integration
+# Copy this file to .gitlab-ci.yml and customize paths
+
+stages:
+  - generate
+
+variables:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+
+generate_docs:
+  stage: generate
+  
+  # Docker image with Python 3.11
+  image: python:3.11-slim
+  
+  # Pipeline execution steps
+  script:
+    # Install Anodyse tool
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Generate documentation
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path $ANODYSE_OUTPUT_DIR
+  
+  # Preserve generated documentation as artifacts
+  artifacts:
+    paths:
+      - $ANODYSE_OUTPUT_DIR/
+    expire_in: 30 days
+  
+  # When to run this pipeline
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'      # Main branch
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'  # Merge requests
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "schedule"' # Scheduled runs
+      when: always
+  
+  # Job timeout (default is 1 hour)
+  timeout: 10 minutes
+
+# CUSTOMIZATION GUIDE
+#
+# 1. Change ANODYSE_INPUT_DIR to your Ansible directory:
+#    variables:
+#      ANODYSE_INPUT_DIR: ./ansible-playbooks/production
+#
+# 2. Change ANODYSE_OUTPUT_DIR to your desired output location:
+#    variables:
+#      ANODYSE_OUTPUT_DIR: ./generated-docs
+#
+# 3. Run only on specific branches:
+#    rules:
+#      - if: '$CI_COMMIT_BRANCH == "main"'
+#      - if: '$CI_COMMIT_BRANCH == "develop"'
+#
+# 4. Add custom template directory:
+#    script:
+#      - python -m anodyse \
+#          --input-path $ANODYSE_INPUT_DIR \
+#          --output-path $ANODYSE_OUTPUT_DIR \
+#          --template-dir ./templates
+#
+# 5. Skip on merge request draft:
+#    rules:
+#      - if: '$CI_MERGE_REQUEST_DRAFT == "true"'
+#        when: never
+#      - when: always
+#
+# 6. Different artifact retention by branch:
+#    artifacts:
+#      rules:
+#        - if: '$CI_COMMIT_BRANCH == "main"'
+#          expire_in: 90 days
+#        - expire_in: 7 days

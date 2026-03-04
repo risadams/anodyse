@@ -1,0 +1,255 @@
+# Woodpecker CI Pipeline: Anodyse Documentation Generation
+#
+# Woodpecker is a forked continuation of Drone CI with community support
+# Use this for self-hosted or cloud Woodpecker instances
+#
+# File location: .woodpecker.yml in repository root
+#
+
+kind: pipeline
+type: docker
+name: anodyse-docs
+
+# ============================================================
+# Trigger conditions
+# ============================================================
+
+trigger:
+  # Trigger on push to any branch
+  event:
+    - push
+    - pull_request
+  # Optional: limit to specific branch
+  # branch:
+  #   - main
+  #   - develop
+
+# ============================================================
+# Environment variables
+# ============================================================
+
+variables:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs/generated
+  ANODYSE_TEMPLATE_DIR: ./templates
+
+# ============================================================
+# Workspace
+# ============================================================
+
+workspace:
+  base: /workspace
+
+# ============================================================
+# Pipeline stages
+# ============================================================
+
+steps:
+  # ======================================================
+  # Step 1: Setup and verification
+  # ======================================================
+  
+  - name: setup
+    image: python:3.11-slim
+    commands:
+      - echo "=========================================="
+      - echo "Anodyse Documentation Generation"
+      - echo "=========================================="
+      - echo ""
+      - echo "Trigger:     $CI_BUILD_EVENT"
+      - echo "Branch:      $CI_COMMIT_BRANCH"
+      - echo "Commit:      $CI_COMMIT_SHA"
+      - echo "Workspace:   ${CI_WORKSPACE}"
+      - echo ""
+      - python --version
+      - pip --version
+
+  # ======================================================
+  # Step 2: Verify input directory
+  # ======================================================
+  
+  - name: verify-input
+    image: python:3.11-slim
+    commands:
+      - |
+        if [ ! -d "$ANODYSE_INPUT_DIR" ]; then
+          echo "ERROR: Input directory not found: $ANODYSE_INPUT_DIR"
+          exit 1
+        fi
+      - echo "Input directory: $ANODYSE_INPUT_DIR"
+      - echo "YAML files found:"
+      - find $ANODYSE_INPUT_DIR -name "*.yml" -o -name "*.yaml" | head -10
+
+  # ======================================================
+  # Step 3: Install Anodyse
+  # ======================================================
+  
+  - name: install
+    image: python:3.11-slim
+    commands:
+      - echo "Installing Anodyse..."
+      - pip install --upgrade pip setuptools wheel
+      - pip install anodyse
+      - echo "Anodyse installed:"
+      - python -m anodyse --version
+
+  # ======================================================
+  # Step 4: Generate documentation
+  # ======================================================
+  
+  - name: generate
+    image: python:3.11-slim
+    commands:
+      - echo "Generating documentation..."
+      - mkdir -p $ANODYSE_OUTPUT_DIR
+      - |
+        python -m anodyse $ANODYSE_INPUT_DIR \
+          --output $ANODYSE_OUTPUT_DIR
+      - echo ""
+      - echo "Generated documentation:"
+      - ls -lah $ANODYSE_OUTPUT_DIR/
+      - echo ""
+      - echo "Total files:"
+      - find $ANODYSE_OUTPUT_DIR -name "*.md" | wc -l
+
+  # ======================================================
+  # Step 5: Verify output
+  # ======================================================
+  
+  - name: verify-output
+    image: python:3.11-slim
+    commands:
+      - |
+        if [ ! -f "$ANODYSE_OUTPUT_DIR/index.md" ]; then
+          echo "ERROR: index.md not generated"
+          exit 1
+        fi
+      - echo "✓ Documentation validation passed"
+      - echo "  - index.md found"
+      - echo "  - Ready for publishing"
+
+# ============================================================
+# Artifacts (store generated docs)
+# ============================================================
+
+volumes:
+  - name: docs-volume
+    temp: {}
+
+# ============================================================
+# Services (optional: for integrations)
+# ============================================================
+
+# services:
+#   - name: postgres
+#     image: postgres:15-alpine
+#     # only needed if integrating with external services
+
+# ============================================================
+# CUSTOMIZATION GUIDE
+# ============================================================
+#
+# 1. CHANGE INPUT/OUTPUT PATHS:
+#    variables:
+#      ANODYSE_INPUT_DIR: ./your-playbooks
+#      ANODYSE_OUTPUT_DIR: ./your-docs
+#
+# 2. ADD CUSTOM TEMPLATES:
+#    variables:
+#      ANODYSE_TEMPLATE_DIR: ./your-templates
+#    Then add in generate step:
+#      --template-dir $ANODYSE_TEMPLATE_DIR \
+#
+# 3. TRIGGER ON SPECIFIC BRANCHES:
+#    trigger:
+#      branch:
+#        - main
+#        - /^release\/.*$/
+#
+# 4. TRIGGER ON TAGS:
+#    trigger:
+#      event:
+#        - tag
+#
+# 5. SKIP PULL REQUESTS:
+#    trigger:
+#      event:
+#        - push
+#      # omit pull_request to skip PRs
+#
+# 6. USE DIFFERENT PYTHON VERSIONS:
+#    - name: generate-py39
+#      image: python:3.11-slim
+#    - name: generate-py311
+#      image: python:3.11-slim
+#
+# 7. CONDITIONAL STEP (run only on main):
+#    when:
+#      branch: main
+#
+# 8. PUBLISH TO GIT (commit generated docs back):
+#    - name: publish
+#      image: alpine/git
+#      commands:
+#        - git config user.email "bot@example.com"
+#        - git config user.name "Documentation Bot"
+#        - git add $ANODYSE_OUTPUT_DIR/
+#        - git commit -m "docs: update documentation"
+#        - git push origin $CI_COMMIT_BRANCH
+#      when:
+#        branch: main
+#      # Requires DEPLOY_KEY or SSH credentials
+#
+# 9. RETRY ON FAILURE:
+#    - name: generate
+#      image: python:3.11-slim
+#      retry:
+#        max: 3
+#      commands:
+#        - python -m anodyse ...
+#
+# 10. SETUP IN WOODPECKER:
+#     1. Go to repository settings
+#     2. Add repository: URL of your Git repository
+#     3. Enable CI for this repository
+#     4. Push .woodpecker.yml to main branch
+#     5. Pipeline runs automatically on next push
+#
+# ============================================================
+# DIFFERENCES FROM OTHER CI SYSTEMS
+# ============================================================
+#
+# Woodpecker (vs GitHub Actions):
+# - Uses docker: prefix for Docker images instead of uses: actions/
+# - Steps instead of jobs (sequential by default)
+# - No native matrix, but can define multiple steps
+# - Simpler configuration, fewer features
+# - Perfect for self-hosted or simpler workflows
+#
+# Woodpecker (vs GitLab CI/CD):
+# - Similar to GitLab's structure (steps/stages)
+# - Steps are sequential in a single stage
+# - Easier to read and write than complex yaml
+# - Less powerful than GitLab's rules system
+# - Open-source and community-driven
+#
+# ============================================================
+# INSTALLATION & SETUP
+# ============================================================
+#
+# For Woodpecker Cloud:
+# 1. Go to https://cloud.woodpecker.io
+# 2. Sign in with GitHub/GitLab
+# 3. Enable repositories
+# 4. Add .woodpecker.yml
+# 5. Push and watch it run
+#
+# For Self-Hosted Woodpecker:
+# 1. Install Woodpecker server and agent
+#    https://woodpecker-ci.org/docs/intro
+# 2. Configure OAuth with GitHub/GitLab
+# 3. Enable repositories in UI
+# 4. Add .woodpecker.yml to repository
+# 5. Push to trigger pipeline
+#
+# ============================================================

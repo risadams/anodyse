@@ -1,0 +1,184 @@
+name: Scheduled Docs Regeneration
+
+on:
+  schedule:
+    # Every Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  regenerate:
+    name: Regenerate All Sample Docs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Anodyse
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e .
+      
+      - name: Generate fresh documentation
+        env:
+          VERBOSE: ${{ github.event.inputs.verbose }}
+        run: |
+          echo "Starting scheduled documentation regeneration..."
+          mkdir -p docs/samples
+          
+          # Skip these directories:
+          # - SAMPLE-OUTPUT: output examples, not playbooks
+          # - anodyse-template-overrides: custom templates, not playbooks
+          # - missing-comments: intentionally missing annotations (generates exit code 2)
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides" "missing-comments")
+          
+          generated_count=0
+          failed_count=0
+          
+          for sample in samples/*/; do
+            if [[ ! -d "$sample" ]]; then
+              continue
+            fi
+            
+            sample_name=$(basename "$sample")
+            
+            # Check if this directory should be skipped
+            should_skip=false
+            for skip in "${skip_dirs[@]}"; do
+              if [[ "$sample_name" == "$skip" ]]; then
+                should_skip=true
+                break
+              fi
+            done
+            
+            if [[ "$should_skip" == "true" ]]; then
+              if [[ "$VERBOSE" == "true" ]]; then
+                echo "Skipping: $sample_name (special directory)"
+              fi
+              continue
+            fi
+            
+            if [[ "$VERBOSE" == "true" ]]; then
+              echo "Processing: $sample_name"
+            fi
+            
+            if anodyse "$sample" --output "docs/samples"; then
+              generated_count=$((generated_count + 1))
+              if [[ "$VERBOSE" == "true" ]]; then
+                echo "  ✓ Generated documentation for: $sample_name"
+              fi
+            else
+              failed_count=$((failed_count + 1))
+              if [[ "$VERBOSE" == "true" ]]; then
+                echo "  ✗ Failed: $sample_name"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "Regeneration summary:"
+          echo "  Processed: $generated_count samples"
+          echo "  Failed: $failed_count samples"
+          
+          if [[ $failed_count -eq 0 ]]; then
+            echo "✓ All documentation regenerated successfully"
+          fi
+      
+      - name: Verify generated documentation
+        run: |
+          echo "Verifying generated documentation..."
+          if [[ ! -f "docs/samples/index.md" ]]; then
+            echo "✗ Index file not generated"
+            exit 1
+          fi
+          
+          file_count=$(find docs/samples -type f | wc -l)
+          echo "✓ Generated $file_count documentation files"
+      
+      - name: Commit changes if any
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet docs/samples/; then
+            echo "✓ No changes to documentation"
+          else
+            echo "Committing documentation updates..."
+            git add docs/samples/
+            git commit -m "docs: regenerate sample documentation (scheduled)"
+            git push
+            echo "✓ Documentation updates pushed"
+          fi
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: success()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/samples
+          destination_dir: samples
+          user_name: 'github-actions[bot]'
+          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+      
+      - name: Create workflow summary
+        if: always()
+        run: |
+          status="${{ job.status }}"
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 📄 Scheduled Documentation Regeneration
+          
+          - **Workflow**: `docs-schedule.yml`
+          - **Trigger**: Weekly Monday 2 AM UTC (or manual)
+          - **Status**: ${{ job.status }}
+          - **Run**: [${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          ### Output
+          - Generated files: `docs/samples/`
+          - Published to: GitHub Pages (`/samples/`)
+          - Commit message: "docs: regenerate sample documentation (scheduled)"
+          
+          **Documentation is now up-to-date!**
+          EOF
+
+  # Notify on failure
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: regenerate
+    if: failure()
+    
+    steps:
+      - name: Comment on repo
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '❌ Scheduled docs regeneration failed',
+              body: `The scheduled documentation regeneration job failed.\n\nSee [workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
+              labels: ['bug', 'documentation']
+            });

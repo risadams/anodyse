@@ -1,0 +1,91 @@
+name: Generate Ansible Documentation (Basic)
+
+# Triggers
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 2 * * MON'
+  workflow_dispatch:
+
+# Environment variables available to all steps
+env:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+
+jobs:
+  generate-docs:
+    # Runner machine type
+    runs-on: ubuntu-latest
+    
+    # Job-level timeout (default is 360 minutes)
+    timeout-minutes: 30
+    
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Set up Python environment
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'  # Cache pip dependencies for faster builds
+      
+      # Step 3: Install Anodyse
+      - name: Install Anodyse
+        run: |
+          pip install --upgrade pip
+          pip install anodyse
+      
+      # Step 4: Generate documentation
+      - name: Generate Documentation
+        run: |
+          python -m anodyse \
+            --input-path ${{ env.ANODYSE_INPUT_DIR }} \
+            --output-path ${{ env.ANODYSE_OUTPUT_DIR }}
+      
+      # Step 5: Upload generated documentation as workflow artifacts
+      # These are available for download in the Actions tab and attached to the workflow run
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        # Run even if previous steps fail (for debugging)
+        if: always()
+        with:
+          name: ansible-docs-${{ github.run_number }}
+          path: ${{ env.ANODYSE_OUTPUT_DIR }}
+          retention-days: 30
+
+# CUSTOMIZATION GUIDE
+# 1. Change ANODYSE_INPUT_DIR to your Ansible directory
+#    If your playbooks are in ./ansible-playbooks/production:
+#    env:
+#      ANODYSE_INPUT_DIR: ./ansible-playbooks/production
+#
+# 2. Change ANODYSE_OUTPUT_DIR to your desired output location
+#    env:
+#      ANODYSE_OUTPUT_DIR: ./generated-docs
+#
+# 3. Run on specific branches only:
+#    on:
+#      push:
+#        branches: [main, develop, staging]
+#      pull_request:
+#        branches: [main]
+#
+# 4. Add custom template directory:
+#    - name: Generate Documentation
+#      run: |
+#        python -m anodyse \
+#          --input-path ./playbooks \
+#          --output-path ./docs \
+#          --template-dir ./templates
+#
+# 5. Disable specific triggers (e.g., remove schedule):
+#    on:
+#      push:
+#        branches: [main]
+#      pull_request:
+#      workflow_dispatch:

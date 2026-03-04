@@ -1,0 +1,251 @@
+version: 2.1
+
+# ============================================================
+# Jobs
+# ============================================================
+
+jobs:
+  generate_docs:
+    docker:
+      - image: python:3.11-slim
+    
+    environment:
+      ANODYSE_INPUT_DIR: ./playbooks
+      ANODYSE_OUTPUT_DIR: ./docs/generated
+      ANODYSE_TEMPLATE_DIR: ./templates
+    
+    steps:
+      # ======================================================
+      # Step 1: Checkout code
+      # ======================================================
+      - checkout
+      
+      # ======================================================
+      # Step 2: Setup and verification
+      # ======================================================
+      - run:
+          name: Setup and Verification
+          command: |
+            echo "=========================================="
+            echo "Anodyse Documentation Generation"
+            echo "=========================================="
+            echo ""
+            echo "GitHash:    $CIRCLE_SHA1"
+            echo "Branch:     $CIRCLE_BRANCH"
+            echo "Tag:        $CIRCLE_TAG"
+            python --version
+            pip --version
+      
+      # ======================================================
+      # Step 3: Prepare environment
+      # ======================================================
+      - run:
+          name: Verify Input Directory
+          command: |
+            if [ ! -d "$ANODYSE_INPUT_DIR" ]; then
+              echo "ERROR: Input directory not found: $ANODYSE_INPUT_DIR"
+              exit 1
+            fi
+            
+            echo "Input directory: $ANODYSE_INPUT_DIR"
+            echo "YAML files found:"
+            find $ANODYSE_INPUT_DIR -name "*.yml" -o -name "*.yaml" | head -10
+      
+      # ======================================================
+      # Step 4: Install Anodyse
+      # ======================================================
+      - run:
+          name: Install Anodyse
+          command: |
+            pip install --upgrade pip setuptools wheel
+            pip install anodyse
+            echo "Anodyse installed:"
+            python -m anodyse --version
+      
+      # ======================================================
+      # Step 5: Generate documentation
+      # ======================================================
+      - run:
+          name: Generate Documentation
+          command: |
+            echo "Generating documentation..."
+            mkdir -p $ANODYSE_OUTPUT_DIR
+            
+            python -m anodyse \
+              --input-path $ANODYSE_INPUT_DIR \
+              --output-path $ANODYSE_OUTPUT_DIR
+            
+            echo ""
+            echo "Generated documentation:"
+            ls -lah $ANODYSE_OUTPUT_DIR/
+            
+            echo ""
+            echo "Total files:"
+            find $ANODYSE_OUTPUT_DIR -name "*.md" | wc -l
+      
+      # ======================================================
+      # Step 6: Verify output
+      # ======================================================
+      - run:
+          name: Verify Output
+          command: |
+            if [ ! -f "$ANODYSE_OUTPUT_DIR/index.md" ]; then
+              echo "ERROR: index.md not generated"
+              exit 1
+            fi
+            
+            echo "✓ Documentation validation passed"
+            echo "  - index.md found"
+            echo "  - Ready for publishing"
+      
+      # ======================================================
+      # Step 7: Store artifacts
+      # ======================================================
+      - store_artifacts:
+          path: docs/generated
+          destination: docs-artifacts
+
+# ============================================================
+# Workflows
+# ============================================================
+
+workflows:
+  docs_generation:
+    jobs:
+      # Run on all branches and tags
+      - generate_docs:
+          filters:
+            branches:
+              only: /.*/  # Run on all branches
+            tags:
+              only: /.*/  # Run on all tags
+  
+  # Scheduled workflow (daily at 2 AM UTC)
+  scheduled_docs:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"  # Daily 2 AM
+          filters:
+            branches:
+              only: main
+    jobs:
+      - generate_docs
+
+# ============================================================
+# CUSTOMIZATION GUIDE
+# ============================================================
+#
+# 1. CHANGE INPUT/OUTPUT PATHS:
+#    environment:
+#      ANODYSE_INPUT_DIR: ./your-playbooks
+#      ANODYSE_OUTPUT_DIR: ./your-docs
+#
+# 2. ADD CUSTOM TEMPLATES:
+#    environment:
+#      ANODYSE_TEMPLATE_DIR: ./your-templates
+#    Then add flag in generate step:
+#      --template-dir $ANODYSE_TEMPLATE_DIR \
+#
+# 3. RUN ONLY ON SPECIFIC BRANCHES:
+#    workflows:
+#      docs_generation:
+#        jobs:
+#          - generate_docs:
+#              filters:
+#                branches:
+#                  only: main
+#
+# 4. RUN ON TAGS ONLY:
+#    filters:
+#      branches:
+#        ignore: /.*/
+#      tags:
+#        only: /^v.*/
+#
+# 5. PUBLISH TO ARTIFACTS REPOSITORY:
+#    - run:
+#        name: Deploy to Artifacts
+#        command: |
+#          curl -u $ARTIFACTORY_CREDENTIALS \
+#            -T "docs/generated/*" \
+#            "https://artifactory.example.com/docs/"
+#
+# 6. NOTIFY ON COMPLETION:
+#    - run:
+#        name: Notify Slack
+#        command: |
+#          curl -X POST $SLACK_WEBHOOK \
+#            -d "Documentation generated successfully"
+#
+# 7. PARALLEL JOBS (multiple Python versions):
+#    jobs:
+#      generate_py39:
+#        docker:
+#          - image: python:3.11-slim
+#      generate_py311:
+#        docker:
+#          - image: python:3.11-slim
+#    
+#    workflows:
+#      test:
+#        jobs:
+#          - generate_py39
+#          - generate_py311
+#
+# 8. CONDITIONAL PUBLISH (only on main branch):
+#    - run:
+#        name: Publish Documentation
+#        command: |
+#          if [ "$CIRCLE_BRANCH" == "main" ]; then
+#            ./deploy-docs.sh
+#          fi
+#
+# 9. USE CONTEXT FOR SECRETS:
+#    workflows:
+#      docs_generation:
+#        jobs:
+#          - generate_docs:
+#              context: deploy-context  # Requires setup in CircleCI UI
+#
+# 10. SETUP IN CIRCLECI UI:
+#     1. Go to https://circleci.com
+#     2. Sign up with GitHub/GitLab
+#     3. Select project
+#     4. Set up project with existing config
+#     5. CircleCI automatically finds .circleci/config.yml
+#     6. Push changes and watch pipeline run
+#
+# ============================================================
+# PRICING & QUOTA
+# ============================================================
+#
+# CircleCI Free Tier:
+# - 6,000 compute credits/month
+# - ~200 builds at 30 credits each
+# - 1 concurrent build
+# - Free for public repositories
+#
+# Estimate for Anodyse:
+# - Small playbook (~20 files): 2-3 minutes, ~2 credits
+# - Medium playbook (~100 files): 5-10 minutes, ~4 credits
+# - Large playbook (~500+ files): 15-20 minutes, ~8 credits
+#
+# ============================================================
+# DIFFERENCES FROM OTHER CI SYSTEMS
+# ============================================================
+#
+# CircleCI (vs GitHub Actions):
+# - version: 2.1 instead of YAML keys
+# - Docker images specified per job
+# - Workflows define pipeline structure
+# - Built-in artifact storage
+# - Great UI for debugging
+#
+# CircleCI (vs GitLab CI/CD):
+# - Similar concepts (jobs, containers, artifacts)
+# - CircleCI UI-first vs. GitLab config-first
+# - CircleCI better for open-source (free credits)
+# - GitLab better for self-hosted
+# - CircleCI has larger free tier
+#
+# ============================================================
