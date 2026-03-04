@@ -278,7 +278,7 @@
   - Add badge/link to sample automated docs
   - Reference dogfood examples
 
-- [ ] T406 Create anodyse repository CI/CD status page: `docs/ANODYSE_CI_DOGFOOD.md`
+- [X] T406 Create anodyse repository CI/CD status page: `docs/ANODYSE_CI_DOGFOOD.md`
   - Shows how anodyse uses this feature
   - Links to CI workflows
   - Links to generated sample docs
@@ -292,29 +292,29 @@
 
 ### Documentation Quality
 
-- [ ] T501 Review all guides for consistency in:
+- [X] T501 Review all guides for consistency in:
   - Terminology (workflow vs. pipeline, job vs. stage)
   - Code formatting (YAML indentation, shell script style)
   - Cross-platform examples parity
   - File paths and assumptions
 
-- [ ] T502 Create documentation index: `docs/CI_INTEGRATION_INDEX.md`
+- [X] T502 Create documentation index: `docs/CI_INTEGRATION_INDEX.md`
   - Navigation guide to all CI docs
   - Quick links by platform
   - FAQ index
   - Troubleshooting quick reference
 
-- [ ] T503 [P] Create glossary: `docs/CI_GLOSSARY.md`
+- [X] T503 [P] Create glossary: `docs/CI_GLOSSARY.md`
   - Define CI/CD, workflow, pipeline, job, stage, trigger, artifact, secret
   - Platform-specific terminology
   - Anodyse-specific terms
 
-- [ ] T504 [P] Create checklists for setup verification: `docs/SETUP_CHECKLISTS.md`
+- [X] T504 [P] Create checklists for setup verification: `docs/SETUP_CHECKLISTS.md`
   - GitHub Actions setup checklist (7 items)
   - GitLab CI setup checklist (8 items)
   - Generic CI setup checklist (6 items)
 
-- [ ] T505 Create configuration reference: `docs/CONFIGURATION_REFERENCE.md`
+- [X] T505 Create configuration reference: `docs/CONFIGURATION_REFERENCE.md`
   - All environment variables documented
   - Default values
   - Supported options per platform
