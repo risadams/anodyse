@@ -1,0 +1,161 @@
+name: Generate Docs (All Triggers Demo)
+
+# This workflow demonstrates all available trigger options
+# Use this as a template to understand each trigger type
+on:
+  # Trigger on push to specific branches
+  push:
+    branches:
+      - main              # Main branch
+      - develop           # Development branch
+      - 'release/**'      # Release branches (release/v1.0, etc.)
+    # Only run if these files/directories change
+    paths:
+      - 'playbooks/**'
+      - 'roles/**'
+      - '.github/workflows/***'
+  
+  # Trigger on pull requests to specific branches
+  pull_request:
+    branches:
+      - main
+    # Only run if these files/directories change
+    paths:
+      - 'playbooks/**'
+      - 'roles/**'
+  
+  # Trigger on version tags
+  push:
+    tags:
+      - 'v*'              # v1.0, v1.1.2, etc.
+  
+  # Scheduled trigger (uses GitHub Actions cron format)
+  schedule:
+    # Every Monday at 2 AM UTC
+    - cron: '0 2 * * MON'
+    
+    # Weekdays at 8 AM UTC
+    - cron: '0 8 * * 1-5'
+    
+    # Every day at noon UTC
+    - cron: '0 12 * * *'
+    
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  
+  # Manual trigger (click button in Actions tab)
+  workflow_dispatch:
+    # Optional input parameters for manual runs
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      
+      verbose:
+        description: 'Enable verbose logging'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+  ANODYSE_VERBOSE: ${{ github.event.inputs.verbose || 'false' }}
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Anodyse
+        run: |
+          pip install --upgrade pip
+          pip install anodyse
+      
+      # Show trigger information for debugging
+      - name: Log Trigger Context
+        run: |
+          echo "Trigger event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Manual inputs - Environment: ${{ github.event.inputs.environment }}"
+          echo "Manual inputs - Verbose: ${{ github.event.inputs.verbose }}"
+      
+      # Different behavior based on trigger type
+      - name: Generate Documentation
+        run: |
+          python -m anodyse \
+            --input-path ${{ env.ANODYSE_INPUT_DIR }} \
+            --output-path ${{ env.ANODYSE_OUTPUT_DIR }}
+      
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: docs-${{ github.run_number }}-${{ github.event_name }}
+          path: ${{ env.ANODYSE_OUTPUT_DIR }}
+          retention-days: 30
+
+# TRIGGER TYPES EXPLAINED
+#
+# 1. PUSH - Trigger on code push to repository
+#    - branches: [main]           # Specific branches
+#    - paths: ['playbooks/**']    # Specific files/directories changed
+#    - tags: ['v*']               # Version tags
+#
+# 2. PULL REQUEST - Trigger when PR is created/updated
+#    - branches: [main]           # Target branch of PR
+#    - paths: ['playbooks/**']    # Only if specific files changed
+#    - types: [opened]            # PR action (opened, synchronize, etc.)
+#
+# 3. SCHEDULE - Trigger on cron schedule (UTC timezone)
+#    Cron format: minute hour day-of-month month day-of-week
+#    - '0 2 * * MON'              # Monday at 2 AM UTC
+#    - '0 9 * * 1-5'              # Weekdays at 9 AM UTC
+#    - '0 */6 * * *'              # Every 6 hours
+#
+# 4. WORKFLOW_DISPATCH - Manual trigger (click button)
+#    - inputs: optional parameters
+#    - Access via: ${{ github.event.inputs.parameter-name }}
+#
+# CONDITIONAL EXECUTION EXAMPLES
+#
+# Only on push to main:
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#
+# Only on schedule:
+#    if: github.event_name == 'schedule'
+#
+# Skip draft PRs:
+#    if: '!github.event.pull_request.draft'
+#
+# Only if specific files changed:
+#    if: contains(github.event.head_commit.modified, 'playbooks/')
+#
+# DISABLING TRIGGERS
+#
+# To disable specific triggers, remove them or comment out:
+#
+# # on:
+# #   schedule:         # Commented out - no scheduled runs
+# #     - cron: '0 2 * * MON'
+#   push:             # Still triggers on push
+#     branches: [main]
+#   workflow_dispatch: # Manual runs still work

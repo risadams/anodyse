@@ -1,0 +1,180 @@
+name: Generate Docs with Custom Templates
+
+# This workflow demonstrates how to use custom Jinja2 templates
+# for documented output formatting
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+  ANODYSE_TEMPLATE_DIR: ./templates
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Include submodules if templates are in a submodule
+          submodules: 'false'
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Anodyse
+        run: pip install anodyse
+      
+      # Option 1: Use templates from your repository
+      - name: Generate Documentation (local templates)
+        run: |
+          python -m anodyse \
+            --input-path ${{ env.ANODYSE_INPUT_DIR }} \
+            --output-path ${{ env.ANODYSE_OUTPUT_DIR }} \
+            --template-dir ${{ env.ANODYSE_TEMPLATE_DIR }}
+      
+      # Option 2: Clone external templates from another repository
+      - name: Clone External Templates
+        if: false  # Set to true to use external templates
+        run: |
+          git clone https://github.com/your-org/anodyse-templates ./external-templates
+          export ANODYSE_TEMPLATE_DIR="./external-templates"
+      
+      # Option 3: Download templates from a release
+      - name: Download Template Release
+        if: false  # Set to true to use released templates
+        run: |
+          mkdir -p ./templates
+          curl -L -o ./templates.tar.gz \
+            https://github.com/your-org/anodyse-templates/releases/download/v1.0/templates.tar.gz
+          tar -xzf ./templates.tar.gz -C ./templates
+      
+      # Verify templates exist
+      - name: Verify Templates
+        run: |
+          echo "Templates directory:"
+          ls -la ${{ env.ANODYSE_TEMPLATE_DIR }}/ || echo "Templates directory not found"
+          echo ""
+          echo "Available templates:"
+          find ${{ env.ANODYSE_TEMPLATE_DIR }} -name "*.j2" -o -name "*.jinja2" | head -20
+      
+      # Upload generated documentation
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ansible-docs-custom-templates
+          path: ${{ env.ANODYSE_OUTPUT_DIR }}
+          retention-days: 30
+      
+      # Optional: Deploy to GitHub Pages with custom branding
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ env.ANODYSE_OUTPUT_DIR }}
+
+# TEMPLATE CUSTOMIZATION GUIDE
+#
+# 1. LOCAL TEMPLATES (from your repository)
+#
+#    Directory structure:
+#    templates/
+#    ├── index.md.j2          # Main index template
+#    ├── playbook.md.j2       # Individual playbook template
+#    ├── role.md.j2           # Individual role template
+#    ├── task.md.j2           # Individual task template
+#    └── styles.css           # (optional) Custom CSS
+#
+#    Usage:
+#    - Create templates/ directory in your repository
+#    - Copy .j2 template files
+#    - Set ANODYSE_TEMPLATE_DIR: ./templates
+#    - Anodyse will use your templates instead of built-in ones
+#
+# 2. EXTERNAL TEMPLATES (from another repository)
+#
+#    # Clone external templates repository
+#    - name: Clone External Templates
+#      run: |
+#        git clone https://github.com/your-org/anodyse-templates \
+#          ./external-templates
+#    
+#    # Use in Anodyse
+#    - name: Generate with External Templates
+#      run: |
+#        python -m anodyse \
+#          --input-path ./playbooks \
+#          --output-path ./docs \
+#          --template-dir ./external-templates
+#
+# 3. TEMPLATES FROM RELEASE (distributed as tarball)
+#
+#    # Download and extract
+#    - name: Download Template Release
+#      run: |
+#        curl -L -o ./templates.tar.gz \
+#          https://github.com/your-org/templates/releases/download/v1.0/templates.tar.gz
+#        tar -xzf ./templates.tar.gz
+#    
+#    # Use in Anodyse
+#    - run: |
+#        python -m anodyse \
+#          --template-dir ./templates
+#
+# 4. CONDITIONAL TEMPLATE SELECTION
+#
+#    - name: Select templates based on branch
+#      run: |
+#        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+#          export ANODYSE_TEMPLATE_DIR="./templates/production"
+#        else
+#          export ANODYSE_TEMPLATE_DIR="./templates/staging"
+#        fi
+#        python -m anodyse \
+#          --input-path ./playbooks \
+#          --output-path ./docs \
+#          --template-dir "$ANODYSE_TEMPLATE_DIR"
+#
+# 5. CUSTOM BRAND/STYLING
+#
+#    Create custom template with your branding:
+#    templates/index.md.j2 might include:
+#
+#    ```jinja2
+#    # Company Ansible Documentation
+#    
+#    **Generated on:** {{ generated_at }}
+#    **Repository:** {{ repository_url }}
+#    
+#    ## Playbooks
+#    {% for playbook in playbooks %}
+#    - [{{ playbook.name }}]({{ playbook.path }})
+#    {% endfor %}
+#    ```
+#
+# TROUBLESHOOTING TEMPLATES
+#
+# Check template files exist:
+#   - name: Debug Templates
+#     run: find ./templates -type f -name "*.j2"
+#
+# Enable verbose logging:
+#   - run: |
+#       export ANODYSE_VERBOSE=true
+#       python -m anodyse ...
+#
+# Compare generated output with templates:
+#   - Verify output files match template names
+#   - Check for template syntax errors in logs
