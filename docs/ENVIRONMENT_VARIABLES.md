@@ -209,7 +209,7 @@ jobs:
   generate-docs:
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.11', '3.12']
     steps:
       - name: Generate for Python ${{ matrix.python-version }}
         run: |
@@ -223,7 +223,7 @@ jobs:
 generate-docs:
   parallel:
     matrix:
-      - PYTHON_VERSION: ['3.9', '3.10', '3.11']
+      - PYTHON_VERSION: ['3.11', '3.12']
   image: python:${PYTHON_VERSION}-slim
   script:
     - python -m anodyse ...

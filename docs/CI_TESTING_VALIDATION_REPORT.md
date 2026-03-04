@@ -189,7 +189,7 @@ set -e  # Script stops if any command fails
 
 ✅ **Error Checking**: Pre-flight validation
 ```bash
-check_command "python" "Python 3.9+ required"
+check_command "python" "Python 3.11+ required"
 check_directory "$INPUT_DIR" "Input directory must exist"
 ```
 

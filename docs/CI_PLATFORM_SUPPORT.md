@@ -312,7 +312,7 @@ Time to generate documentation (Anodyse only, not including setup):
 
 | Platform | Minimum | Current | Tested |
 |---|---|---|---|
-| **Python** | 3.9 | 3.12 | 3.9, 3.11 |
+| **Python** | 3.11 | 3.12 | 3.11, 3.12 |
 | **GitHub Actions** | 2021 | 2024+ | Latest |
 | **GitLab CI/CD** | 12.0 | 16.0+ | Latest |
 | **Jenkins** | 2.150+ | 2.400+ | 2.300+ |

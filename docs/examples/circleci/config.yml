@@ -181,7 +181,7 @@ workflows:
 #    jobs:
 #      generate_py39:
 #        docker:
-#          - image: python:3.9-slim
+#          - image: python:3.11-slim
 #      generate_py311:
 #        docker:
 #          - image: python:3.11-slim

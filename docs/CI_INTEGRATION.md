@@ -234,7 +234,7 @@ jobs:
 Edit the workflow to match your repository structure:
 - Change `./playbooks` to your Ansible directory
 - Change `./docs/generated` to your output directory
-- Adjust Python version if needed (3.9, 3.10, 3.11, 3.12)
+- Adjust Python version if needed (3.11, 3.12)
 
 #### Step 3: Push to Repository
 
@@ -283,7 +283,7 @@ jobs:
   generate-docs:
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.11', '3.12']
     runs-on: ubuntu-latest
     steps:
       # ... checkout, setup Python ...
@@ -790,7 +790,7 @@ cp docs/examples/circleci/config.yml .circleci/
 
 1. **Check Python version early**:
    ```bash
-   python3 --version  # Must be 3.9+
+   python3 --version  # Must be 3.11+
    ```
 
 2. **Use virtual environments** (isolate dependencies):
@@ -829,7 +829,7 @@ cp docs/examples/circleci/config.yml .circleci/
 
 **`anodyse` command not found**:
 - Solution: Ensure `pip install anodyse` runs before invoking the command
-- Verify Python version (3.9+) installed: `python --version`
+- Verify Python version (3.11+) installed: `python --version`
 
 **Missing input directory**:
 - Verify `--input-path` points to valid Ansible directory

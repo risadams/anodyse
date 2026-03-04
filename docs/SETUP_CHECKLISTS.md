@@ -40,7 +40,7 @@ Use these checklists to verify your CI/CD integration is set up correctly.
 - [ ] Workflow logs show no errors
 - [ ] Input directory contains valid Ansible files
 - [ ] Output files are not in `.gitignore`
-- [ ] Python 3.9+ is being used
+- [ ] Python 3.11+ is being used
 - [ ] `anodyse` installed successfully (check workflow logs)
 
 **Team Handoff** (Ready to share)
@@ -103,7 +103,7 @@ Use these checklists to verify your CI/CD integration is set up correctly.
 - [ ] Pipeline logs show no errors
 - [ ] Input directory contains valid Ansible files
 - [ ] Docker image pulls successfully
-- [ ] Python 3.9+ is available in image
+- [ ] Python 3.11+ is available in image
 - [ ] `anodyse` installed successfully (check job logs)
 
 **Team Handoff** (Ready to share)
@@ -161,7 +161,7 @@ Use these checklists to verify your CI/CD integration is set up correctly.
 - [ ] All expected documentation files present
 
 **Environment Setup**
-- [ ] Python 3.9+ available in build environment
+- [ ] Python 3.11+ available in build environment
 - [ ] `pip install anodyse` completed successfully
 - [ ] Working directory contains your playbooks
 - [ ] Output directory is writable

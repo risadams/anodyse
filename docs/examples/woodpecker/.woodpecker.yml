@@ -179,7 +179,7 @@ volumes:
 #
 # 6. USE DIFFERENT PYTHON VERSIONS:
 #    - name: generate-py39
-#      image: python:3.9-slim
+#      image: python:3.11-slim
 #    - name: generate-py311
 #      image: python:3.11-slim
 #

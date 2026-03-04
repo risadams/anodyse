@@ -35,7 +35,7 @@ Side-by-side comparison of GitHub Actions and GitLab CI/CD for Anodyse documenta
 | **Large Marketplace** | 10,000+ pre-built actions | Reduce workflow configuration |
 | **Branch Deployments** | Native GitHub Pages integration | One command for publishing |
 | **Community** | Largest CI/CD user base | Easiest to find examples and help |
-| **Simple Matrix** | Easy multi-version testing | Python 3.9/3.10/3.11 easily parallel |
+| **Simple Matrix** | Easy multi-version testing | Python 3.11/3.12 easily parallel |
 
 ### GitHub Actions Example
 
@@ -200,7 +200,7 @@ artifacts:
 
 strategy:
   matrix:
-    python-version: ['3.9', '3.10', '3.11']
+    python-version: ['3.11', '3.12']
 ```
 
 **GitLab CI/CD**
@@ -213,7 +213,7 @@ rules:
 
 parallel:
   matrix:
-    - PYTHON_VERSION: ['3.9', '3.10', '3.11']
+    - PYTHON_VERSION: ['3.11', '3.12']
 ```
 
 **Winner**: 🎯 **GitLab** - More powerful rules, easier multi-variant logic

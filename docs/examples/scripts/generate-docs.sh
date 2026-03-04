@@ -93,7 +93,7 @@ PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.v
 log_info "  Python version: $PYTHON_VERSION"
 
 if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'; then
-    log_error "Python 3.9+ required (found $PYTHON_VERSION)"
+    log_error "Python 3.11+ required (found $PYTHON_VERSION)"
     exit 1
 fi
 

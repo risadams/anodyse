@@ -182,7 +182,7 @@ At minimum, customize:
 
 1. **Input/Output directories**: Match your repository layout
 2. **Triggers**: When to run (push, PR, schedule, manual)
-3. **Python version**: Anodyse requires 3.9+
+3. **Python version**: Anodyse requires 3.11+
 4. **Artifact handling**: Where to store generated docs
 
 Example customization:
@@ -213,7 +213,7 @@ my-platform-store-artifact "$OUTPUT_DIR"
 ### 1. Verify Python Version Early
 
 ```bash
-python3 --version  # Check 3.9+
+python3 --version  # Check 3.11+
 pip3 --version
 ```
 

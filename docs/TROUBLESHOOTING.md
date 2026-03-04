@@ -26,11 +26,11 @@ Common issues and solutions when integrating Anodyse into your CI/CD pipeline.
    python -m anodyse --help  # Verify installation
    ```
 
-2. **Check Python version** (anodyse requires 3.9+):
+2. **Check Python version** (anodyse requires 3.11+):
    ```bash
    python --version
    ```
-   If using Python < 3.9, update:
+   If using Python < 3.11, update:
    - GitHub Actions: Change `python-version: '3.11'`
    - GitLab CI: Change `image: python:3.11-slim`
 

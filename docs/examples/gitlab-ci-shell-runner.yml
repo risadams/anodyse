@@ -161,7 +161,7 @@ cleanup:
 #    Go to Settings → CI/CD → Runners → Enable for this project
 #
 # 5. PYTHON SETUP on runner machine:
-#    # Ensure Python 3.9+ is installed
+#    # Ensure Python 3.11+ is installed
 #    python3 --version
 #    # Or specify full path:
 #    /usr/bin/python3 --version

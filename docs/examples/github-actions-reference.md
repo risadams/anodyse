@@ -387,7 +387,7 @@ jobs:
   generate-docs:
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -419,7 +419,7 @@ runs-on: ${{ matrix.os }}
 strategy:
   fail-fast: false  # Continue other matrix jobs on failure
   matrix:
-    python-version: ['3.9', '3.10', '3.11']
+    python-version: ['3.11', '3.12']
 ```
 
 ---

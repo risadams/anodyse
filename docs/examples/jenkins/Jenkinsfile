@@ -329,9 +329,9 @@ pipeline {
 // 7. PARALLEL STAGES (multiple Python versions):
 //    stage('Generate') {
 //        parallel {
-//            stage('Python 3.9') {
+//            stage('Python 3.11') {
 //                steps {
-//                    sh 'python3.9 -m anodyse ...'
+//                    sh 'python3.11 -m anodyse ...'"
 //                }
 //            }
 //            stage('Python 3.11') {
