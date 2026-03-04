@@ -122,7 +122,7 @@
       args:
         chdir: "/opt/{{ app_name }}"
       register: pull_result
-      changed_when: "'Pulling" in pull_result.stdout'
+      changed_when: "'Pulling' in pull_result.stdout"
       
     # @title Start application containers
     # @description Start all application containers via Docker Compose
