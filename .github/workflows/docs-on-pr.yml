@@ -40,13 +40,13 @@ jobs:
       
       - name: Validate documentation can be generated
         id: validate
-        continue-on-error: true
         run: |
           echo "Validating documentation generation..."
           mkdir -p /tmp/generated-docs
           
           sample_count=0
           success_count=0
+          warning_count=0
           failed_samples=""
           
           # Skip these special directories
@@ -76,12 +76,20 @@ jobs:
             sample_count=$((sample_count + 1))
             echo "Testing: $sample_name"
             
-            if anodyse "$sample" --output "/tmp/generated-docs" 2>/tmp/${sample_name}.log; then
+            anodyse "$sample" --output "/tmp/generated-docs" 2>/tmp/${sample_name}.log
+            exit_code=$?
+            
+            if [[ $exit_code -eq 0 ]]; then
               success_count=$((success_count + 1))
               echo "  ✓ Success"
+            elif [[ $exit_code -eq 2 ]]; then
+              # Exit code 2 = warnings (documentation generated but missing annotations)
+              warning_count=$((warning_count + 1))
+              success_count=$((success_count + 1))
+              echo "  ⚠ Generated with warnings"
             else
               echo "  ✗ Failed"
-              failed_samples="$failed_samples\n  - $sample_name (see details below)"
+              failed_samples="$failed_samples\n  - $sample_name (exit code: $exit_code)"
             fi
           done
           
@@ -89,6 +97,7 @@ jobs:
           echo "## Summary"
           echo "Total samples: $sample_count"
           echo "Successful: $success_count"
+          echo "With warnings: $warning_count"
           echo "Failed: $((sample_count - success_count))"
           
           if [[ $sample_count -eq 0 ]]; then
@@ -145,9 +154,3 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
-      
-      - name: Report status
-        if: steps.validate.outcome == 'failure'
-        run: |
-          echo "::error::Documentation generation validation failed. See PR comments and logs."
-          exit 1
