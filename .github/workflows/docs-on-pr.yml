@@ -49,17 +49,34 @@ jobs:
           success_count=0
           failed_samples=""
           
+          # Skip these special directories
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides")
+          
           for sample in samples/*/; do
             if [[ ! -d "$sample" ]]; then
               continue
             fi
             
             sample_name=$(basename "$sample")
-            sample_count=$((sample_count + 1))
             
+            # Check if this directory should be skipped
+            should_skip=false
+            for skip in "${skip_dirs[@]}"; do
+              if [[ "$sample_name" == "$skip" ]]; then
+                should_skip=true
+                break
+              fi
+            done
+            
+            if [[ "$should_skip" == "true" ]]; then
+              echo "Skipping: $sample_name (special directory)"
+              continue
+            fi
+            
+            sample_count=$((sample_count + 1))
             echo "Testing: $sample_name"
             
-            if anodyse "$sample" --output "/tmp/generated-docs/${sample_name}" 2>/tmp/${sample_name}.log; then
+            if anodyse "$sample" --output "/tmp/generated-docs" 2>/tmp/${sample_name}.log; then
               success_count=$((success_count + 1))
               echo "  ✓ Success"
             else
@@ -74,7 +91,10 @@ jobs:
           echo "Successful: $success_count"
           echo "Failed: $((sample_count - success_count))"
           
-          if [[ $success_count -eq $sample_count ]]; then
+          if [[ $sample_count -eq 0 ]]; then
+            echo "✓ No samples to validate"
+            exit 0
+          elif [[ $success_count -eq $sample_count ]]; then
             echo "✓ All documentation generation passed"
             exit 0
           else

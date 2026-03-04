@@ -48,6 +48,9 @@ jobs:
           echo "Starting scheduled documentation regeneration..."
           mkdir -p docs/samples
           
+          # Skip these special directories
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides")
+          
           generated_count=0
           failed_count=0
           
@@ -57,6 +60,22 @@ jobs:
             fi
             
             sample_name=$(basename "$sample")
+            
+            # Check if this directory should be skipped
+            should_skip=false
+            for skip in "${skip_dirs[@]}"; do
+              if [[ "$sample_name" == "$skip" ]]; then
+                should_skip=true
+                break
+              fi
+            done
+            
+            if [[ "$should_skip" == "true" ]]; then
+              if [[ "$VERBOSE" == "true" ]]; then
+                echo "Skipping: $sample_name (special directory)"
+              fi
+              continue
+            fi
             
             if [[ "$VERBOSE" == "true" ]]; then
               echo "Processing: $sample_name"

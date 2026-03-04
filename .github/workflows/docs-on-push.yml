@@ -41,6 +41,9 @@ jobs:
           echo "Generating documentation from samples..."
           mkdir -p docs/samples
           
+          # Skip these special directories
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides")
+          
           # Generate docs for each sample directory
           for sample in samples/*/; do
             # Skip if not a directory
@@ -49,14 +52,22 @@ jobs:
             fi
             
             sample_name=$(basename "$sample")
-            echo "Processing: $sample_name"
             
-            # Skip special directories
-            if [[ "$sample_name" == "SAMPLE-OUTPUT" ]]; then
+            # Check if this directory should be skipped
+            should_skip=false
+            for skip in "${skip_dirs[@]}"; do
+              if [[ "$sample_name" == "$skip" ]]; then
+                should_skip=true
+                break
+              fi
+            done
+            
+            if [[ "$should_skip" == "true" ]]; then
+              echo "Skipping: $sample_name (special directory)"
               continue
             fi
             
-            # Run anodyse on the sample (works with directories or playbook files)
+            echo "Processing: $sample_name"
             anodyse "$sample" --output "docs/samples" 2>/dev/null || \
               echo "  ⚠ Warning: Could not process $sample_name"
           done
