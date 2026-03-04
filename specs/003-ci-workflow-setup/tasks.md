@@ -252,28 +252,28 @@
 
 **Purpose**: Demonstrate feature by implementing in anodyse repository using sample playbooks
 
-- [ ] T401 [P] Create GitHub Actions workflow for anodyse repository: `.github/workflows/docs-on-push.yml`
+- [X] T401 [P] Create GitHub Actions workflow for anodyse repository: `.github/workflows/docs-on-push.yml`
   - Runs on push to main
   - Processes samples/
   - Publishes to GitHub Pages at /docs/samples/
   - Uses repository example templates
 
-- [ ] T402 [P] Create GitHub Actions workflow for PR validation: `.github/workflows/docs-on-pr.yml`
+- [X] T402 [P] Create GitHub Actions workflow for PR validation: `.github/workflows/docs-on-pr.yml`
   - Runs on PR to main
   - Validates docs can be generated
   - Reports status in PR
 
-- [ ] T403 [P] Create GitHub Actions workflow for scheduled regeneration: `.github/workflows/docs-schedule.yml`
+- [X] T403 [P] Create GitHub Actions workflow for scheduled regeneration: `.github/workflows/docs-schedule.yml`
   - Runs weekly Monday 2 AM
   - Regenerates all sample docs
   - Updates repository
 
-- [ ] T404 Create sample documentation README: `samples/README-DOCS.md`
+- [X] T404 Create sample documentation README: `samples/README-DOCS.md`
   - Explains what sample docs are
   - Links to generated output
   - Shows CI workflow examples
 
-- [ ] T405 Update main README: `README.md`
+- [X] T405 Update main README: `README.md`
   - Add link to CI integration guide
   - Add badge/link to sample automated docs
   - Reference dogfood examples

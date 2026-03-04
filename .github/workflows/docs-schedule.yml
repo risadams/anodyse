@@ -1,0 +1,184 @@
+name: Scheduled Docs Regeneration
+
+on:
+  schedule:
+    # Every Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  regenerate:
+    name: Regenerate All Sample Docs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Anodyse
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e .
+      
+      - name: Generate fresh documentation
+        env:
+          VERBOSE: ${{ github.event.inputs.verbose }}
+        run: |
+          echo "Starting scheduled documentation regeneration..."
+          mkdir -p docs/samples
+          
+          generated_count=0
+          failed_count=0
+          
+          for sample in samples/*/; do
+            if [[ ! -d "$sample" ]]; then
+              continue
+            fi
+            
+            sample_name=$(basename "$sample")
+            output_file="docs/samples/${sample_name}.md"
+            
+            if [[ "$VERBOSE" == "true" ]]; then
+              echo "Processing: $sample_name"
+            fi
+            
+            if anodyse \
+                --input "$sample" \
+                --output "$output_file" \
+                --title "Sample: $sample_name"; then
+              generated_count=$((generated_count + 1))
+              if [[ "$VERBOSE" == "true" ]]; then
+                echo "  ✓ Generated: $output_file"
+              fi
+            else
+              failed_count=$((failed_count + 1))
+              if [[ "$VERBOSE" == "true" ]]; then
+                echo "  ✗ Failed: $sample_name"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "Regeneration summary:"
+          echo "  Generated: $generated_count files"
+          echo "  Failed: $failed_count files"
+          
+          if [[ $failed_count -eq 0 ]]; then
+            echo "✓ All documentation regenerated successfully"
+          fi
+      
+      - name: Update index with generation timestamp
+        run: |
+          last_updated=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          
+          cat > docs/samples/index.md << EOF
+          # Generated Sample Documentation
+          
+          > **Last Updated**: $last_updated
+          
+          This documentation is auto-generated every week from sample playbooks in the \`samples/\` directory.
+          
+          ## Sample Documentation
+          
+          EOF
+          
+          for sample in samples/*/; do
+            sample_name=$(basename "$sample")
+            if [[ -f "docs/samples/${sample_name}.md" ]]; then
+              echo "- [$sample_name](${sample_name}.md)" >> docs/samples/index.md
+            fi
+          done
+          
+          cat >> docs/samples/index.md << 'EOF'
+          
+          ## About This Feature
+          
+          These documents are generated using [Anodyse](https://github.com/example/anodyse) - an Ansible playbook documentation generator that automatically creates comprehensive markdown documentation from your infrastructure-as-code.
+          
+          **Learn more about CI/CD integration**: See [CI Integration Guide](../CI_INTEGRATION.md) to add Anodyse to your own workflows.
+          EOF
+      
+      - name: Commit changes if any
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet docs/samples/; then
+            echo "✓ No changes to documentation"
+          else
+            echo "Committing documentation updates..."
+            git add docs/samples/
+            git commit -m "docs: regenerate sample documentation (scheduled)"
+            git push
+            echo "✓ Documentation updates pushed"
+          fi
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/samples
+          destination_dir: samples
+          user_name: 'github-actions[bot]'
+          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+      
+      - name: Create workflow summary
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 📄 Scheduled Documentation Regeneration
+          
+          - **Workflow**: `docs-schedule.yml`
+          - **Trigger**: Weekly Monday 2 AM UTC (or manual)
+          - **Status**: ${{ job.status }}
+          - **Run**: [${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          ### Output
+          - Generated files: `docs/samples/`
+          - Published to: GitHub Pages (`/samples/`)
+          - Commit message: "docs: regenerate sample documentation (scheduled)"
+          
+          **Documentation is now up-to-date!**
+          EOF
+
+  # Notify on failure
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: regenerate
+    if: failure()
+    
+    steps:
+      - name: Comment on repo
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '❌ Scheduled docs regeneration failed',
+              body: 'The scheduled documentation regeneration job failed.\n\nSee [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.',
+              labels: ['bug', 'documentation']
+            });
