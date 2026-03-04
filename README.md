@@ -54,6 +54,39 @@ Typical output:
 - `docs/samples/index.md`
 - one markdown file per discovered playbook/role
 
+## Using Anodyse in CI/CD
+
+Integrate Anodyse into your CI/CD pipeline to automatically generate documentation:
+
+- **[CI Integration Guide](./docs/CI_INTEGRATION.md)** - Setup for GitHub Actions, GitLab CI/CD, Jenkins, etc.
+- **[Quickstart](./specs/003-ci-workflow-setup/quickstart.md)** - 5-minute setup guides by platform
+- **[Publishing Guide](./docs/PUBLISHING.md)** - Publish docs to GitHub Pages, GitLab Pages, S3, and more
+
+**Getting started**:
+1. Choose your platform: [GitHub Actions](./docs/CI_INTEGRATION.md#github-actions-integration), [GitLab CI/CD](./docs/CI_INTEGRATION.md#gitlab-cicd-integration), or [other](./docs/CI_INTEGRATION.md#generic-ci-patterns)
+2. Copy example workflow from [examples/workflows/](./docs/examples/workflows/)
+3. Adjust paths and triggers for your repository
+4. Commit and push to auto-generate docs
+
+Example (GitHub Actions):
+```yaml
+name: Generate Docs
+on: [push, pull_request]
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install anodyse
+      - run: python -m anodyse . --output ./docs
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./docs
+```
+
 ## CLI
 
 ```text
