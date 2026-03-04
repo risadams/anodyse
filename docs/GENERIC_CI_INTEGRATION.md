@@ -154,7 +154,7 @@ Most CI systems follow this pattern:
 6. (Optional) Deploy
 ```
 
-Anopyse fits in **steps 3-4**:
+Anodyse fits in **steps 3-4**:
 
 ```bash
 # Step 3: Install Anodyse (as dependency)
@@ -231,7 +231,7 @@ pip install anodyse
 
 ```bash
 echo "=========================================="
-echo "Anoyse Documentation Generation"
+echo "Anodyse Documentation Generation"
 echo "=========================================="
 echo "Input:  $INPUT_DIR"
 echo "Output: $OUTPUT_DIR"

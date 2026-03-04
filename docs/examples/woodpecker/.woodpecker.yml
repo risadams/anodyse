@@ -103,9 +103,8 @@ steps:
       - echo "Generating documentation..."
       - mkdir -p $ANODYSE_OUTPUT_DIR
       - |
-        python -m anopyse \
-          --input-path $ANODYSE_INPUT_DIR \
-          --output-path $ANODYSE_OUTPUT_DIR
+        python -m anodyse $ANODYSE_INPUT_DIR \
+          --output $ANODYSE_OUTPUT_DIR
       - echo ""
       - echo "Generated documentation:"
       - ls -lah $ANODYSE_OUTPUT_DIR/

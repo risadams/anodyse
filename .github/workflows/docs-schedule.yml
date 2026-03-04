@@ -63,10 +63,8 @@ jobs:
               echo "Processing: $sample_name"
             fi
             
-            if anodyse \
-                --input "$sample" \
-                --output "$output_file" \
-                --title "Sample: $sample_name"; then
+            if anodyse "$sample" \
+                --output "$output_file"; then
               generated_count=$((generated_count + 1))
               if [[ "$VERBOSE" == "true" ]]; then
                 echo "  ✓ Generated: $output_file"
@@ -136,7 +134,7 @@ jobs:
       
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
-        if: always()
+        if: success()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/samples

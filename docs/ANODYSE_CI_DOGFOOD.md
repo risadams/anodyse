@@ -284,5 +284,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 ---
 
 **Last Updated**: Auto-generated from workflow  
-**Maintained By**: Anonyse team  
+**Maintained By**: Anodyse team  
 **Version**: 1.0 (Feature release 003-ci-workflow-setup)

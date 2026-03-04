@@ -51,10 +51,7 @@ jobs:
             sample_name=$(basename "$sample")
             echo "Processing: $sample_name"
             if [[ -f "$sample/README.md" ]]; then
-              anodyse \
-                --input "$sample" \
-                --output "docs/samples/${sample_name}.md" \
-                --title "Sample: $sample_name" \
+              anodyse "$sample" --output "docs/samples" \
                 || echo "Warning: Failed to process $sample_name"
             fi
           done

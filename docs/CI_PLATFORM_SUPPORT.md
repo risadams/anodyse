@@ -1,6 +1,6 @@
 # CI Platform Support Matrix
 
-Comprehensive comparison of all supported CI/CD platforms for Anonyse integration.
+# Comprehensive comparison of all supported CI/CD platforms for Anodyse integration.
 
 ---
 
@@ -288,7 +288,7 @@ Time to generate documentation (Anodyse only, not including setup):
 | Medium (100-200 files) | 3-5 min | 1-2 min |
 | Large (500+ files) | 10-15 min | 2-3 min |
 
-**Total job time** = CI overhead + Anoyse execution
+**Total job time** = CI overhead + Anodyse execution
 
 **Optimization Tip**: Use container caching to reduce CI overhead:
 - Cache pip packages
@@ -332,4 +332,4 @@ Time to generate documentation (Anodyse only, not including setup):
 ---
 
 **Last Updated**: March 2026
-**Anodysе Version**: 1.0+
+**Anodyse Version**: 1.0+
