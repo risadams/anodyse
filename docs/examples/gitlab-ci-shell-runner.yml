@@ -1,0 +1,221 @@
+# GitLab CI/CD Pipeline: Anodyse with Shell Runner (Self-Hosted)
+# Use this when you have a self-hosted runner that executes commands directly on the server
+# Copy this file to .gitlab-ci.yml and customize paths
+
+stages:
+  - setup
+  - generate
+  - publish
+
+variables:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+  ANODYSE_VENV: ./venv
+  PAGES_OUTPUT_DIR: ./public
+
+# Pipeline-level timeout
+timeout: 15 minutes
+
+# Use specific runner with shell executor
+# Tag the runner in GitLab UI, then reference here:
+generate_docs:
+  stage: generate
+  
+  # Shell runner - executes on the GitLab runner host machine
+  tags:
+    - shell          # Replace with your runner tag
+    # - production   # Optional: use specific runners for specific work
+    # - linux        # Optional: filter by OS
+  
+  script:
+    # Verify Python availability
+    - python3 --version
+    
+    # Create virtual environment if not present
+    - |
+      if [ ! -d "$ANODYSE_VENV" ]; then
+        python3 -m venv $ANODYSE_VENV
+      fi
+    
+    # Activate virtual environment (bash syntax)
+    - source $ANODYSE_VENV/bin/activate
+    
+    # Upgrade pip
+    - pip install --upgrade pip setuptools
+    
+    # Install Anodyse and dependencies
+    - pip install anodyse
+    
+    # Verify installation
+    - python -m anodyse --version
+    
+    # Create output directory
+    - mkdir -p $ANODYSE_OUTPUT_DIR
+    
+    # Generate documentation
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path $ANODYSE_OUTPUT_DIR
+    
+    # Verify output
+    - test -d "$ANODYSE_OUTPUT_DIR" || (echo "Documentation generation failed"; exit 1)
+    - echo "Successfully generated documentation"
+    - find $ANODYSE_OUTPUT_DIR -type f | wc -l | xargs echo "Total files:"
+  
+  artifacts:
+    paths:
+      - $ANODYSE_OUTPUT_DIR/
+    expire_in: 30 days
+    # Exclude venv from artifacts to save space
+    exclude:
+      - $ANODYSE_VENV/
+  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+  
+  retry:
+    max: 2
+    when:
+      - script_failure
+
+# Publish to GitLab Pages
+pages:
+  stage: publish
+  tags:
+    - shell
+  
+  image: alpine:latest  # Use Docker for this job if available
+  
+  script:
+    - mkdir -p $PAGES_OUTPUT_DIR
+    - cp -r $ANODYSE_OUTPUT_DIR/* $PAGES_OUTPUT_DIR/ || true
+    - echo "Published to $PAGES_OUTPUT_DIR"
+    - ls -la "$PAGES_OUTPUT_DIR/"
+  
+  artifacts:
+    paths:
+      - $PAGES_OUTPUT_DIR
+    expire_in: 30 days
+  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - when: never
+  
+  environment:
+    name: production
+    url: https://$CI_PROJECT_NAMESPACE.gitlab.io/$CI_PROJECT_NAME/
+
+# Cleanup old builds (optional)
+cleanup:
+  stage: .post
+  tags:
+    - shell
+  
+  script:
+    # Remove virtual environment to save space
+    - rm -rf $ANODYSE_VENV
+  
+  when: always  # Run even if other jobs fail
+  allow_failure: true
+  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+
+# ============================================================
+# SHELL RUNNER SETUP GUIDE
+# ============================================================
+#
+# 1. INSTALL GITLAB RUNNER (on your server)
+#    a) Linux:
+#       curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | bash
+#       sudo apt-get install gitlab-runner
+#    
+#    b) Windows:
+#       https://docs.gitlab.com/runner/install/windows.html
+#    
+#    c) macOS:
+#       brew install gitlab-runner
+#
+# 2. REGISTER RUNNER with shell executor:
+#    sudo gitlab-runner register \
+#      --url https://gitlab.com/ \
+#      --registration-token <your-token> \
+#      --executor shell \
+#      --description "Anodyse Shell Runner" \
+#      --tag-list shell,production
+#
+# 3. VERIFY RUNNER SETUP:
+#    sudo gitlab-runner list
+#    sudo gitlab-runner verify
+#
+# 4. ENABLE RUNNER for this project:
+#    Go to Settings → CI/CD → Runners → Enable for this project
+#
+# 5. PYTHON SETUP on runner machine:
+#    # Ensure Python 3.9+ is installed
+#    python3 --version
+#    # Or specify full path:
+#    /usr/bin/python3 --version
+#
+# 6. TROUBLESHOOTING
+#
+#    Issue: "shell runner not found"
+#    Fix: Check runner tags match pipeline tags
+#         Settings → CI/CD → Runners → Verify tag is listed
+#
+#    Issue: "Python not found"
+#    Fix: Update script to use full path:
+#         /usr/bin/python3 -m venv $ANODYSE_VENV
+#
+#    Issue: "Permission denied on venv"
+#    Fix: Check runner user has write permissions to project directory
+#         chmod -R u+w /path/to/project
+#
+#    Issue: "Out of disk space"
+#    Fix: Enable cleanup job or manually remove old builds:
+#         gitlab-runner cache-clear
+#
+# 7. PERFORMANCE TIPS
+#    - Reuse virtual environment across runs (less time on setup)
+#    - Use .gitlab-ci.yml cache section:
+#      cache:
+#        paths:
+#          - $ANOPYSE_VENV
+#    - Schedule heavy jobs during off-peak hours
+#
+# 8. SECURITY BEST PRACTICES
+#    - Use locked runners for sensitive projects
+#    - Rotate registration tokens regularly
+#    - Disable public runner access to CI/CD variables
+#    - Use runner access tokens instead of registration tokens
+#
+# 9. DIFFERENCE: Shell vs. Docker Runner
+#
+#    Shell Runner:
+#    ✓ No container overhead
+#    ✓ Direct system access
+#    ✓ Faster for simple jobs
+#    ✗ Less isolation between jobs
+#    ✗ Must manage dependencies manually
+#
+#    Docker Runner:
+#    ✓ Complete isolation
+#    ✓ Reproducible environment
+#    ✓ Multi-version support per job
+#    ✗ Container startup overhead
+#    ✗ Network complexity
+#
+# 10. CONVERTING TO DOCKER RUNNER
+#     Just remove the container setup steps and add `image:` instead:
+#     - Change `tags: [shell]` to `tags: [docker]`
+#     - Add `image: python:3.11-slim` at job level
+#     - Remove venv activation lines (image has Python ready)

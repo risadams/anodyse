@@ -1,0 +1,256 @@
+# GitLab CI/CD Pipeline: All Triggers Demonstration
+# Shows how to configure all available trigger types in GitLab CI
+
+stages:
+  - generate
+
+variables:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+
+# ============================================================
+# Job demonstrating all trigger types with rules
+# ============================================================
+generate_docs:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - echo "Trigger source: $CI_PIPELINE_SOURCE"
+    - echo "Commit branch: $CI_COMMIT_BRANCH"
+    - echo "Commit tag: $CI_COMMIT_TAG"
+    
+    - pip install anodyse
+    
+    # Generate documentation
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path $ANODYSE_OUTPUT_DIR
+  
+  artifacts:
+    paths:
+      - $ANODYSE_OUTPUT_DIR/
+    expire_in: 30 days
+  
+  # RULES: All trigger types
+  # Modern GitLab recommended syntax (replaces legacy only/except)
+  rules:
+    # 1. PUSH to any branch EXCEPT tags
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_TAG == null'
+      when: always
+      
+    # 2. PULL/MERGE REQUEST events
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    
+    # 3. SCHEDULED pipelines (from pipeline schedules)
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    
+    # 4. MANUAL trigger (web UI button)
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+    
+    # 5. PUSH to TAG (git tag push)
+    - if: '$CI_COMMIT_TAG'
+      when: always
+    
+    # 6. PIPELINE trigger (triggered by other pipeline)
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+      when: always
+    
+    # 7. API trigger
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+      when: always
+  
+  timeout: 10 minutes
+
+# ============================================================
+# CUSTOMIZATION GUIDE
+# ============================================================
+#
+# Trigger Type 1: Push to any branch
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH'
+#       when: always
+#
+# Trigger Type 2: Push to specific branch (e.g., main)
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       when: always
+#     - if: '$CI_COMMIT_BRANCH == "develop"'
+#       when: always
+#     - when: never  # Disable for other branches
+#
+# Trigger Type 3: Push to branch matching pattern
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH =~ /^release\/.*$/'  # Matches: release/*, release-1.0
+#       when: always
+#
+# Trigger Type 4: Merge Request (Pull Request)
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#       when: always
+#
+# Trigger Type 5: Skip draft merge requests
+#   rules:
+#     - if: '$CI_MERGE_REQUEST_DRAFT == "true"'
+#       when: never  # Don't run on draft MR
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#       when: always
+#
+# Trigger Type 6: Scheduled pipeline (daily/weekly/monthly)
+# SETUP: Project Settings → CI/CD → Schedules → Create
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+#       when: always
+#
+# Trigger Type 7: Manual trigger (web UI button)
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "web"'
+#       when: manual  # Shows button in UI, user must click
+#
+# Trigger Type 8: Git tag push
+#   rules:
+#     - if: '$CI_COMMIT_TAG'
+#       when: always
+#
+# Trigger Type 9: Tag matching pattern
+#   rules:
+#     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'  # Matches: v1.0.0, v2.1.5
+#       when: always
+#
+# Trigger Type 10: Pipeline triggered by another pipeline
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+#       when: always
+#
+# Trigger Type 11: API triggered
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "api"'
+#       when: always
+#
+# ============================================================
+# COMBINED EXAMPLES
+# ============================================================
+
+# Example 1: Run on push to main OR on schedule
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       when: always
+#     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+#       when: always
+#     - when: never
+#
+# Example 2: Run on MR but not on draft
+#   rules:
+#     - if: '$CI_MERGE_REQUEST_DRAFT == "true"'
+#       when: never
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#       when: always
+#
+# Example 3: Different behavior by trigger type
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       when: always            # Always run
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#       when: always            # Always run
+#     - if: '$CI_PIPELINE_SOURCE == "web"'
+#       when: manual            # Manual button in UI
+#     - when: never             # Don't run for anything else
+#
+# Example 4: Conditional with variables
+#   rules:
+#     - if: '$FORCE_BUILD == "true"'
+#       when: always
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       when: always
+#     - when: never
+#
+# Example 5: Skip on specific changes
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       changes:
+#         - playbooks/**/*      # Only run if playbooks changed
+#         - .gitlab-ci.yml
+#       when: always
+#     - when: never             # Don't run if only docs changed
+#
+# ============================================================
+# VARIABLE REFERENCE
+# ============================================================
+#
+# $CI_COMMIT_BRANCH - Current branch name (only on branch pushes)
+# $CI_COMMIT_TAG - Git tag name (only on tag pushes)
+# $CI_MERGE_REQUEST_IID - Merge Request ID number
+# $CI_MERGE_REQUEST_DRAFT - "true" if MR is marked as draft
+# $CI_PIPELINE_SOURCE - Type of trigger:
+#   - push
+#   - merge_request_event
+#   - schedule
+#   - web (manual UI click)
+#   - pipeline (triggered by another pipeline)
+#   - api
+#   - external
+#   - trigger
+#   - parent_pipeline
+#
+# ============================================================
+# COMMON PATTERNS
+# ============================================================
+#
+# Pattern 1: Run on all branches + MR + schedule
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH'
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+#
+# Pattern 2: Run only on specific branches
+#   only:
+#     - main
+#     - /^release\/.*$/
+#     - /^feature\/.*$/
+#
+# Pattern 3: Run on push + manual trigger
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH'
+#       when: always
+#     - if: '$CI_PIPELINE_SOURCE == "web"'
+#       when: manual
+#
+# Pattern 4: Run on schedule only
+#   rules:
+#     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+#       when: always
+#     - when: never
+#
+# ============================================================
+# BEST PRACTICES
+# ============================================================
+#
+# 1. Use rules (modern) instead of only/except (legacy):
+#    ✅ rules:
+#        - if: '$CI_COMMIT_BRANCH == "main"'
+#    ❌ only:
+#        - main
+#
+# 2. Be explicit - always end with `when: never` if restricting:
+#    rules:
+#      - if: condition1
+#        when: always
+#      - if: condition2
+#        when: always
+#      - when: never  # Don't run for anything else
+#
+# 3. Use meaningful job names that describe trigger type
+#    ✅ generate_on_push, generate_on_schedule, generate_manual
+#    ❌ job1, build, test
+#
+# 4. Document trigger logic in comments (like this file!)
+#
+# 5. Test each trigger type manually before deploying:
+#    - Push to branch
+#    - Create merge request
+#    - Manually trigger from web UI
+#    - Wait for scheduled pipeline
+#    - Push a git tag

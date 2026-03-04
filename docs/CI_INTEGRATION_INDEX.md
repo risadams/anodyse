@@ -7,8 +7,9 @@ Complete index of all CI/CD integration documentation for Anodyse.
 | Need | Document | Time |
 |------|----------|------|
 | **Quick start** | [Quickstart Guide](../specs/003-ci-workflow-setup/quickstart.md) | 5 min |
-| **GitHub Actions** | [GitHub Actions Reference](./examples/github-actions-reference.md) | 20 min |
-| **GitLab CI/CD** | [GitLab CI Reference](./examples/gitlab-ci-reference.md) | 20 min |
+| **GitHub Actions** | [GitHub Actions Reference](./github-actions-reference.md) | 20 min |
+| **GitLab CI/CD** | [GitLab CI Reference](./gitlab-ci-reference.md) | 20 min |
+| **Platform comparison** | [GitHub vs. GitLab](./PLATFORM_COMPARISON.md) | 10 min |
 | **Jenkins** | [Jenkins Integration Guide](./CI_INTEGRATION.md#generic-ci-patterns) | 30 min |
 | **Publishing docs** | [Publishing Guide](./PUBLISHING.md) | 15 min |
 | **Environment setup** | [Environment Variables](./ENVIRONMENT_VARIABLES.md) | 10 min |
@@ -24,13 +25,13 @@ Complete index of all CI/CD integration documentation for Anodyse.
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [CI_INTEGRATION.md#github-actions](./CI_INTEGRATION.md#github-actions-integration) | Setup guide with 3-step tutorial | End users |
-| [github-actions-reference.md](./examples/github-actions-reference.md) | Complete schema and customization reference | Developers, DevOps |
-| [github-actions-basic.yml](./examples/workflows/github-actions-basic.yml) | Minimal working example (copy-paste ready) | End users |
-| [github-actions-with-github-pages.yml](./examples/workflows/github-actions-with-github-pages.yml) | Advanced setup with publishing | Power users |
-| [github-actions-all-triggers.yml](./examples/workflows/github-actions-all-triggers.yml) | All trigger types demonstration | Reference |
-| [github-actions-custom-templates.yml](./examples/workflows/github-actions-custom-templates.yml) | Template customization patterns | Advanced users |
+| [github-actions-reference.md](./github-actions-reference.md) | Complete schema and customization reference | Developers, DevOps |
+| [github-actions-basic.yml](./examples/github-actions-basic.yml) | Minimal working example (copy-paste ready) | End users |
+| [github-actions-with-github-pages.yml](./examples/github-actions-with-github-pages.yml) | Advanced setup with publishing | Power users |
+| [github-actions-all-triggers.yml](./examples/github-actions-all-triggers.yml) | All trigger types demonstration | Reference |
+| [github-actions-custom-templates.yml](./examples/github-actions-custom-templates.yml) | Template customization patterns | Advanced users |
 
-**Get Started**: Copy [github-actions-basic.yml](./examples/workflows/github-actions-basic.yml) to `.github/workflows/generate-docs.yml` and customize paths.
+**Get Started**: Copy [github-actions-basic.yml](./examples/github-actions-basic.yml) to `.github/workflows/generate-docs.yml` and customize paths.
 
 ---
 
@@ -39,10 +40,11 @@ Complete index of all CI/CD integration documentation for Anodyse.
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [CI_INTEGRATION.md#gitlab-cicd](./CI_INTEGRATION.md#gitlab-cicd-integration) | Setup guide with 3-step tutorial | End users |
-| [gitlab-ci-reference.md](./examples/gitlab-ci-reference.md) | Complete schema and runner options | Developers, DevOps |
+| [gitlab-ci-reference.md](./gitlab-ci-reference.md) | Complete schema and runner options | Developers, DevOps |
 | [gitlab-ci-basic.yml](./examples/gitlab-ci-basic.yml) | Minimal working example (copy-paste ready) | End users |
 | [gitlab-ci-with-gitlab-pages.yml](./examples/gitlab-ci-with-gitlab-pages.yml) | Advanced setup with Pages publishing | Power users |
 | [gitlab-ci-shell-runner.yml](./examples/gitlab-ci-shell-runner.yml) | Self-hosted runner pattern | Enterprise users |
+| [gitlab-ci-custom-templates.yml](./examples/gitlab-ci-custom-templates.yml) | Template customization patterns | Advanced users |
 
 **Get Started**: Copy [gitlab-ci-basic.yml](./examples/gitlab-ci-basic.yml) to `.gitlab-ci.yml` and customize variables.
 

@@ -1,0 +1,312 @@
+# GitLab CI/CD Pipeline: Anodyse with Custom Templates
+# Demonstrates multiple ways to integrate custom Anodyse templates
+# Copy this file to .gitlab-ci.yml and customize template paths
+
+stages:
+  - build
+  - generate
+
+variables:
+  ANODYSE_INPUT_DIR: ./playbooks
+  ANODYSE_OUTPUT_DIR: ./docs
+  TEMPLATE_DIR: ./templates
+
+# ============================================================
+# Job 1: Using Local Template Files from Repository
+# ============================================================
+generate_with_local_templates:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Use templates from repository
+    - mkdir -p $TEMPLATE_DIR
+    
+    # Generate documentation with local templates
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path "${ANODYSE_OUTPUT_DIR}_local" \
+        --template-dir $TEMPLATE_DIR
+    
+    - echo "Generated with local templates in ${ANODYSE_OUTPUT_DIR}_local"
+  
+  artifacts:
+    paths:
+      - ${ANODYSE_OUTPUT_DIR}_local/
+    expire_in: 7 days
+  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+  
+  # Only run if templates files changed
+  only:
+    changes:
+      - templates/**/*
+      - playbooks/**/*
+
+# ============================================================
+# Job 2: Download Templates from External Source
+# ============================================================
+generate_with_external_templates:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Create templates directory
+    - mkdir -p $TEMPLATE_DIR
+    
+    # Download templates from GitHub release
+    - |
+      curl -L https://github.com/acuity-inc/anodyse-templates/releases/download/v1.0.0/templates.tar.gz \
+        -o /tmp/templates.tar.gz
+      tar -xzf /tmp/templates.tar.gz -C $TEMPLATE_DIR
+    
+    # List downloaded templates
+    - echo "Downloaded templates:"
+    - find $TEMPLATE_DIR -name "*.j2" -o -name "*.jinja2"
+    
+    # Generate documentation with external templates
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path "${ANODYSE_OUTPUT_DIR}_external" \
+        --template-dir $TEMPLATE_DIR
+    
+    - echo "Generated with external templates in ${ANODYSE_OUTPUT_DIR}_external"
+  
+  artifacts:
+    paths:
+      - ${ANODYSE_OUTPUT_DIR}_external/
+    expire_in: 7 days
+  
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+
+# ============================================================
+# Job 3: Using Templates from Git Repository
+# ============================================================
+generate_with_cloned_templates:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Clone templates from separate Git repository
+    - git clone \
+        https://oauth2:${CI_JOB_TOKEN}@gitlab.com/company/anodyse-templates.git \
+        $TEMPLATE_DIR
+    
+    # List available templates
+    - echo "Available templates:"
+    - ls -la $TEMPLATE_DIR/
+    
+    # Generate documentation with cloned templates
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path "${ANODYSE_OUTPUT_DIR}_cloned" \
+        --template-dir $TEMPLATE_DIR
+    
+    - echo "Generated with cloned templates in ${ANODYSE_OUTPUT_DIR}_cloned"
+  
+  artifacts:
+    paths:
+      - ${ANODYSE_OUTPUT_DIR}_cloned/
+    expire_in: 7 days
+  
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+  
+  # Requires CI_JOB_TOKEN or Deploy Token setup
+  # Settings → CI/CD → Deploy Tokens (create for templates repo)
+
+# ============================================================
+# Job 4: Branch-Specific Template Selection
+# ============================================================
+generate_with_branch_templates:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Select template based on branch
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "main" ]; then
+        TEMPLATE_VARIANT="production"
+        echo "Using production templates"
+      elif [ "$CI_COMMIT_BRANCH" == "develop" ]; then
+        TEMPLATE_VARIANT="development"
+        echo "Using development templates"
+      else
+        TEMPLATE_VARIANT="default"
+        echo "Using default templates"
+      fi
+    
+    # Create templates directory
+    - mkdir -p $TEMPLATE_DIR
+    
+    # Copy templates for selected variant (from repo)
+    - cp -r ./templates/$TEMPLATE_VARIANT/* $TEMPLATE_DIR/
+    
+    # Generate documentation
+    - python -m anodyse \
+        --input-path $ANODYSE_INPUT_DIR \
+        --output-path $ANODYSE_OUTPUT_DIR \
+        --template-dir $TEMPLATE_DIR
+    
+    - echo "Generated documentation using $TEMPLATE_VARIANT templates"
+  
+  artifacts:
+    paths:
+      - $ANODYSE_OUTPUT_DIR/
+    expire_in: 30 days
+  
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^(main|develop)$/'
+      when: always
+
+# ============================================================
+# Job 5: Multi-Variant Generation (All Templates at Once)
+# ============================================================
+generate_all_variants:
+  stage: generate
+  image: python:3.11-slim
+  
+  script:
+    - pip install --upgrade pip
+    - pip install anodyse
+    
+    # Template variants to generate
+    - VARIANTS="standard professional minimal comprehensive"
+    
+    # Generate for each variant
+    - |
+      for variant in $VARIANTS; do
+        echo "Generating documentation with $variant template"
+        
+        mkdir -p "./templates_$variant"
+        if [ -d "./templates/$variant" ]; then
+          cp -r "./templates/$variant"/* "./templates_$variant"/
+        fi
+        
+        python -m anodyse \
+          --input-path $ANODYSE_INPUT_DIR \
+          --output-path "${ANODYSE_OUTPUT_DIR}_${variant}" \
+          --template-dir "./templates_$variant"
+        
+        echo "✓ Generated: ${ANODYSE_OUTPUT_DIR}_${variant}"
+      done
+  
+  artifacts:
+    paths:
+      - docs_*/
+    expire_in: 14 days
+  
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual  # Manually trigger from UI
+
+# ============================================================
+# CUSTOMIZATION GUIDE
+# ============================================================
+#
+# 1. USING LOCAL REPOSITORY TEMPLATES
+#    Place templates in: ./templates/
+#    Repository structure:
+#      templates/
+#        ├── index.md.j2
+#        ├── playbook.md.j2
+#        └── role.md.j2
+#
+#    Command:
+#      python -m anodyse \
+#        --input-path ./playbooks \
+#        --output-path ./docs \
+#        --template-dir ./templates
+#
+# 2. USING EXTERNAL TEMPLATES FROM URL
+#    Download from release archive:
+#      curl -L https://example.com/templates-v1.0.0.tar.gz | tar -xz -C ./templates
+#
+#    Or download from S3:
+#      aws s3 cp s3://my-bucket/templates.tar.gz . && tar -xz -f templates.tar.gz
+#
+# 3. USING PRIVATE TEMPLATE REPOSITORIES
+#    a) With CI_JOB_TOKEN (GitLab):
+#       git clone https://oauth2:${CI_JOB_TOKEN}@gitlab.com/company/templates.git
+#    
+#    b) With Deploy Token:
+#       - Create in Settings → CI/CD → Deploy Tokens
+#       - Select "read_repository" scope
+#       - Use in clone: git clone https://[username]:[token]@gitlab.com/...
+#    
+#    c) With SSH key:
+#       # Requires SSH key setup in runner
+#       git clone git@gitlab.com:company/templates.git
+#
+# 4. BRANCH-SPECIFIC TEMPLATES
+#    directory structure:
+#      templates/
+#        ├── production/
+#        │   ├── index.md.j2
+#        │   └── playbook.md.j2
+#        ├── development/
+#        │   ├── index.md.j2
+#        │   └── playbook.md.j2
+#        └── default/
+#            └── ...
+#
+# 5. CUSTOM TEMPLATE VARIABLES
+#    Pass variables to templates via Anodyse config:
+#      python -m anodyse \
+#        --input-path ./playbooks \
+#        --output-path ./docs \
+#        --template-dir ./templates \
+#        --template-var "company_name=ACME Inc" \
+#        --template-var "brand_color=#FF5733"
+#
+# 6. TEMPLATE FROM GIT TAG/RELEASE
+#    script:
+#      - |
+#        TEMPLATE_TAG="v1.0.0"
+#        git clone --depth 1 --branch $TEMPLATE_TAG \
+#          https://github.com/company/templates.git ./templates
+#
+# 7. CONDITIONAL TEMPLATE SELECTION BY COMMIT MESSAGE
+#    script:
+#      - |
+#        if echo "$CI_COMMIT_MESSAGE" | grep -q "compact-docs"; then
+#          TEMPLATE_DIR="./templates/minimal"
+#        else
+#          TEMPLATE_DIR="./templates/standard"
+#        fi
+#        python -m anodyse --template-dir $TEMPLATE_DIR
+#
+# 8. TEMPLATE CACHING FOR PERFORMANCE
+#    cache:
+#      paths:
+#        - templates/
+#      key: $CI_COMMIT_REF_SLUG  # Cache per branch
+#
+# 9. VERIFY TEMPLATES BEFORE USE
+#    script:
+#      - test -f "$TEMPLATE_DIR/index.md.j2" || (echo "Template not found"; exit 1)
+#      - echo "Template validation passed"
+#
+# 10. TEMPLATE VERSIONING
+#     script:
+#       - |
+#         TEMPLATE_VERSION="1.2.3"
+#         TEMPLATE_URL="https://github.com/acuity-inc/anodyse-templates/releases/download/v${TEMPLATE_VERSION}/templates.tar.gz"
+#         curl -L $TEMPLATE_URL | tar -xz -C ./templates

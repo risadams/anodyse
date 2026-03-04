@@ -364,15 +364,16 @@ See [TROUBLESHOOTING.md#github-actions](./TROUBLESHOOTING.md#github-actions) for
 
 ## GitLab CI/CD Integration
 
-GitLab CI/CD is GitLab's integrated solution supporting both SaaS (gitlab.com) and self-hosted instances.
+GitLab CI/CD is GitLab's integrated solution supporting both SaaS (gitlab.com) and self-hosted instances. Use the [GitLab CI/CD Reference Guide](./gitlab-ci-reference.md) for comprehensive schema, runner options, and advanced patterns.
 
 ### Platform Overview
 
 - **Pricing**: Free tier includes 400 minutes/month on shared runners
-- **Runners**: Group/project runners (Docker, shell, Kubernetes) or shared runners
-- **Artifacts**: Integrated with configurable retention and expiration
-- **Secrets**: CI/CD variables (project/group/instance scoped)
+- **Runners**: Docker (recommended), Shell (self-hosted), or Kubernetes
+- **Artifacts**: Integrated with configurable retention and branch-specific expiration
+- **Secrets**: CI/CD variables (project/group/instance scoped) with masking and protection
 - **Configuration**: Single `.gitlab-ci.yml` file in repository root
+- **Pages**: Built-in Pages hosting with automatic domain (project.gitlab.io)
 
 ### 3-Step Setup
 
@@ -396,9 +397,11 @@ generate_docs:
     paths:
       - docs/generated/
     expire_in: 30 days
-  only:
-    - main
-    - merge_requests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
   timeout: 10 minutes
 ```
 
@@ -419,6 +422,46 @@ git push origin main
 
 Pipeline will execute automatically. Check "CI/CD → Pipelines" to monitor.
 
+### Example Workflows
+
+We provide four ready-to-use example configurations:
+
+#### 1. **Basic Setup** (Start here)
+[gitlab-ci-basic.yml](../examples/gitlab-ci-basic.yml) - Minimal working example with Docker runner, generates documentation from playbooks, stores artifacts.
+
+```bash
+cp docs/examples/gitlab-ci-basic.yml .gitlab-ci.yml
+# Edit paths to match your repository
+git add .gitlab-ci.yml && git commit -m "Add Anodyse documentation" && git push
+```
+
+#### 2. **With GitLab Pages Publishing**
+[gitlab-ci-with-gitlab-pages.yml](../examples/gitlab-ci-with-gitlab-pages.yml) - Generates docs and publishes to GitLab Pages automatically. Documentation becomes accessible at `https://[group].gitlab.io/[project]/`.
+
+```bash
+cp docs/examples/gitlab-ci-with-gitlab-pages.yml .gitlab-ci.yml
+# Enable Pages in: Settings → Pages
+git add .gitlab-ci.yml && git commit -m "Add Anodyse with Pages publishing" && git push
+```
+
+#### 3. **Self-Hosted Shell Runner**
+[gitlab-ci-shell-runner.yml](../examples/gitlab-ci-shell-runner.yml) - For on-premise deployments or runner machines where you prefer shell execution. Includes Python venv setup, runner tagging, and retry logic.
+
+```bash
+cp docs/examples/gitlab-ci-shell-runner.yml .gitlab-ci.yml
+# Ensure shell runner is tagged as "shell" in your infrastructure
+git add .gitlab-ci.yml && git commit -m "Add Anodyse with shell runner" && git push
+```
+
+#### 4. **Custom Template Integration**
+[gitlab-ci-custom-templates.yml](../examples/gitlab-ci-custom-templates.yml) - Multiple jobs demonstrating local templates, external downloads, template repositories, and branch-specific variants. Run specific template sets for different documentation styles.
+
+```bash
+cp docs/examples/gitlab-ci-custom-templates.yml .gitlab-ci.yml
+# Organize your templates in: ./templates/production/, ./templates/development/, etc.
+git add .gitlab-ci.yml && git commit -m "Add Anodyse with custom templates" && git push
+```
+
 ### Runner Options
 
 **Docker Runner** (recommended, automatic setup):
@@ -430,70 +473,86 @@ generate_docs:
     - python -m anodyse --input-path ./playbooks --output-path ./docs
 ```
 
-**Shell Runner** (for self-hosted):
+**Shell Runner** (for self-hosted or on-premise):
 ```yaml
 generate_docs:
+  tags:
+    - shell  # Ensure runner has this tag
   script:
     - python3.11 -m venv /tmp/anodyse_venv
     - source /tmp/anodyse_venv/bin/activate
+    - pip install anopyse
+    - python -m anodyse --input-path ./playbooks --output-path ./docs
+```
+
+**Kubernetes Runner** (advanced):
+```yaml
+generate_docs:
+  tags:
+    - kubernetes
+  script:
     - pip install anodyse
     - python -m anodyse --input-path ./playbooks --output-path ./docs
 ```
 
+See [gitlab-ci-reference.md](./gitlab-ci-reference.md#docker-vs-shell-runners) for detailed runner comparison and configuration.
+
 ### Advanced Configuration
 
-**Publishing to GitLab Pages**:
+**Publishing to GitLab Pages with environment tracking**:
 
 ```yaml
 stages:
   - generate
   - deploy
 
-variables:
-  ANODYSE_INPUT_DIR: ./playbooks
-  ANODYSE_OUTPUT_DIR: public
-
 generate_docs:
   stage: generate
   image: python:3.11-slim
   script:
     - pip install anodyse
-    - python -m anodyse --input-path $ANODYSE_INPUT_DIR --output-path $ANODYSE_OUTPUT_DIR
+    - python -m anodyse --input-path ./playbooks --output-path ./public
   artifacts:
     paths:
       - public/
     expire_in: 30 days
-  only:
-    - main
 
 pages:
   stage: deploy
   script:
-    - echo "Publishing documentation to GitLab Pages"
+    - echo "Publishing to GitLab Pages"
   artifacts:
     paths:
       - public/
-  only:
-    - main
-  dependencies:
-    - generate_docs
+  environment:
+    name: production
+    url: https://$CI_PROJECT_NAMESPACE.gitlab.io/$CI_PROJECT_NAME/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
 ```
 
-**Using Environment Variables**:
+**Using Custom Variables and Templates**:
 
 ```yaml
 variables:
   ANODYSE_VERBOSE: 'true'
-  CUSTOM_TEMPLATES: './templates'
+  TEMPLATE_VERSION: 'v1.2.0'
 
 generate_docs:
   script:
     - pip install anodyse
-    - export ANODYSE_TEMPLATE_DIR=$CUSTOM_TEMPLATES
-    - python -m anodyse --input-path ./playbooks --output-path ./docs
+    - |
+      if [ -n "$TEMPLATE_VERSION" ]; then
+        curl -L https://github.com/company/templates/releases/download/$TEMPLATE_VERSION/templates.tar.gz | tar -xz -C ./templates
+      fi
+    - python -m anodyse \
+        --input-path ./playbooks \
+        --output-path ./docs \
+        --template-dir ./templates
 ```
 
-**Scheduled Pipelines**:
+**Scheduled Pipelines** (weekly documentation freshness check):
 
 ```yaml
 generate_docs:
@@ -502,37 +561,80 @@ generate_docs:
       when: always
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
     - when: never
+```
+
+**Multi-Branch Retention Policy**:
+
+```yaml
+artifacts:
+  paths:
+    - docs/generated/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      expire_in: 90 days
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      expire_in: 30 days
+    - expire_in: 7 days
 ```
 
 ### Common Customizations
 
 **Only on specific branches**:
 ```yaml
-  only:
-    - main
-    - /^release\/.*$/      # Regex: release/* branches
+rules:
+  - if: '$CI_COMMIT_BRANCH == "main"'
+  - if: '$CI_COMMIT_BRANCH == "develop"'
+  - if: '$CI_COMMIT_BRANCH =~ /^release\/.*$/'
 ```
 
 **Only in merge requests**:
 ```yaml
-  only:
-    - merge_requests
+rules:
+  - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 ```
 
-**Allow failure** (don't block pipeline):
+**Allow failure** (don't block downstream jobs):
 ```yaml
-  allow_failure: true
+allow_failure: true
 ```
 
 **Custom timeout**:
 ```yaml
-  timeout: 15 minutes
+timeout: 15 minutes
 ```
+
+**Skip scheduled runs**:
+```yaml
+rules:
+  - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    when: never
+  - when: always
+```
+
+### Modern `rules` vs. Legacy `only`/`except`
+
+GitLab recommends `rules` (new syntax) over `only`/`except` (legacy):
+
+```yaml
+# ❌ Legacy (avoid):
+only:
+  - main
+  - merge_requests
+
+# ✓ Modern (recommended):
+rules:
+  - if: '$CI_COMMIT_BRANCH == "main"'
+  - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+```
+
+See [gitlab-ci-reference.md](./gitlab-ci-reference.md#triggers--rules) for comprehensive `rules` patterns.
 
 ### GitLab CI/CD Troubleshooting
 
-See [TROUBLESHOOTING.md#gitlab-cicd](./TROUBLESHOOTING.md#gitlab-cicd) for detailed solutions.
+See [TROUBLESHOOTING.md#gitlab-cicd](./TROUBLESHOOTING.md#gitlab-cicd) for detailed solutions to common issues including runner problems, variable scoping, and artifact failures.
 
 ---
 

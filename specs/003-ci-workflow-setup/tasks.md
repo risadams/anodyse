@@ -108,29 +108,29 @@
 
 ### US2 Tasks: GitLab CI/CD Setup & Documentation
 
-- [ ] T201 [P] [US2] Create GitLab CI reference contract: `docs/gitlab-ci-reference.md` with schema, runner options, and customization examples
-- [ ] T202 [P] [US2] Create GitLab CI basic configuration example: `docs/examples/gitlab-ci-basic.yml`
+- [X] T201 [P] [US2] Create GitLab CI reference contract: `docs/gitlab-ci-reference.md` with schema, runner options, and customization examples
+- [X] T202 [P] [US2] Create GitLab CI basic configuration example: `docs/examples/gitlab-ci-basic.yml`
   - Uses Docker runner (python:3.11-slim)
   - Inputs: default paths via variables
   - Triggers: push, MR, manual
   - Output: artifacts with 30-day retention
-- [ ] T203 [P] [US2] Create GitLab CI advanced configuration with GitLab Pages: `docs/examples/gitlab-ci-with-gitlab-pages.yml`
+- [X] T203 [P] [US2] Create GitLab CI advanced configuration with GitLab Pages: `docs/examples/gitlab-ci-with-gitlab-pages.yml`
   - Includes basic CI job
   - Adds pages: job for publishing docs
   - Shows artifact path → Pages host mapping
-- [ ] T204 [P] [US2] Create GitLab CI all-triggers configuration: `docs/examples/gitlab-ci-all-triggers.yml`
+- [X] T204 [P] [US2] Create GitLab CI all-triggers configuration: `docs/examples/gitlab-ci-all-triggers.yml`
   - Push, MR, schedule, manual triggers via rules
   - Shows how to enable/disable each trigger
-- [ ] T205 [P] [US2] Create GitLab CI shell runner alternative: `docs/examples/gitlab-ci-shell-runner.yml`
+- [X] T205 [P] [US2] Create GitLab CI shell runner alternative: `docs/examples/gitlab-ci-shell-runner.yml`
   - For self-hosted runners without Docker
   - Shows venv setup for self-hosted environments
-- [ ] T206 [US2] Create GitLab CI section in `docs/CI_INTEGRATION.md`:
+- [X] T206 [US2] Create GitLab CI section in `docs/CI_INTEGRATION.md`:
   - Runner setup (Docker vs. shell)
   - Configuration walkthrough (variables, stages, rules)
   - Step-by-step copy-paste guide
   - Common customizations (branches, versions, templates, retention)
   - Troubleshooting (7+ common issues specific to GitLab CI)
-- [ ] T207 [P] [US2] Create GitLab CI template customization example: `docs/examples/gitlab-ci-custom-templates.yml`
+- [X] T207 [P] [US2] Create GitLab CI template customization example: `docs/examples/gitlab-ci-custom-templates.yml`
   - Show how to reference repository templates
   - Show how to clone external templates via before_script
 - [ ] T208 [US2] Test GitLab CI configuration on GitLab project or instance
@@ -138,7 +138,7 @@
   - Verify artifacts stored correctly
   - Verify MR pipeline runs (no publish)
   - Verify scheduled pipeline
-- [ ] T209 [US2] Create GitLab CI FAQ section in troubleshooting: `docs/TROUBLESHOOTING.md#gitlab-cicd`
+- [X] T209 [US2] Create GitLab CI FAQ section in troubleshooting: `docs/TROUBLESHOOTING.md#gitlab-cicd`
   - Pipeline not triggering
   - Docker runner not available
   - Artifacts not stored
@@ -147,9 +147,9 @@
 
 ### US2 Tasks: Integration & Documentation
 
-- [ ] T210 [US2] Update main documentation index to link to GitLab CI guide
+- [X] T210 [US2] Update main documentation index to link to GitLab CI guide
 - [ ] T211 [US2] Add GitLab CI setup to quickstart guide validation checklist
-- [ ] T212 [US2] Create feature parity matrix: `docs/PLATFORM_COMPARISON.md` comparing GitHub Actions vs. GitLab CI capabilities and usage
+- [X] T212 [US2] Create feature parity matrix: `docs/PLATFORM_COMPARISON.md` comparing GitHub Actions vs. GitLab CI capabilities and usage
 
 ---
 

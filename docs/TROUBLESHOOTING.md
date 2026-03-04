@@ -517,6 +517,243 @@ git push
        JOB_VAR: value
    ```
 
+### GitLab CI/CD FAQ
+
+**Q: How do I run pipelines only on specific branches?**
+
+A: Use `rules` with branch conditions:
+```yaml
+generate_docs:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\/.*$/'
+```
+
+---
+
+**Q: How do I skip a pipeline for merge requests?**
+
+A: Use `rules` with condition:
+```yaml
+generate_docs:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never  # Disable for MR
+    - when: always
+```
+
+---
+
+**Q: How do I make a job optional (non-blocking)?**
+
+A: Use `allow_failure`:
+```yaml
+generate_docs:
+  script:
+    - python -m anodyse --input-path ./playbooks --output-path ./docs
+  allow_failure: true  # Pipeline continues even if this fails
+```
+
+---
+
+**Q: What's the difference between `only`/`except` and `rules`?**
+
+A: `rules` is the modern syntax (recommended):
+```yaml
+# OLD (avoid in new pipelines):
+only:
+  - main
+except:
+  - merge_requests
+
+# NEW (recommended):
+rules:
+  - if: '$CI_COMMIT_BRANCH == "main"'
+  - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    when: never
+```
+
+---
+
+**Q: How do I trigger a pipeline on a schedule?**
+
+A: Create scheduledin Project Settings → CI/CD → Schedules, then use `rules`:
+```yaml
+generate_docs:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+```
+
+---
+
+**Q: How do I use Docker image from a private registry?**
+
+A: Authenticate and specify image:
+```yaml
+image: my-registry.example.com/python:3.11-slim
+
+# GitLab Project Settings → CI/CD → Variables:
+# CI_REGISTRY_USER (username)
+# CI_REGISTRY_PASSWORD (token/password)
+```
+
+---
+
+**Q: Can I run different jobs on different runners?**
+
+A: Yes, use `tags` to filter runners:
+```yaml
+job_on_specific_runner:
+  tags:
+    - shell           # Only runs on shell runners
+    - production      # Tagged as 'production'
+  script:
+    - python -m anodyse --input-path ./playbooks --output-path ./docs
+```
+
+---
+
+**Q: How do I cache dependencies between jobs/pipelines?**
+
+A: Use `cache` to avoid reinstalling:
+```yaml
+generate_docs:
+  script:
+    - pip install anodyse  # Cached on first run
+    - python -m anodyse --input-path ./playbooks --output-path ./docs
+  cache:
+    paths:
+      - .cache/pip
+    key: $CI_COMMIT_REF_SLUG  # Different cache per branch
+```
+
+---
+
+**Q: How do I pass data between jobs in GitLab CI?**
+
+A: Use artifacts with `dependencies`:
+```yaml
+generate_docs:
+  stage: generate
+  script:
+    - python -m anodyse --input-path ./playbooks --output-path ./docs
+  artifacts:
+    paths:
+      - docs/
+
+publish_docs:
+  stage: deploy
+  dependencies:
+    - generate_docs  # Receives docs/ from previous job
+  script:
+    - cp -r docs/* public/
+```
+
+---
+
+**Q: Why is my shell runner executing but showing as failed?**
+
+A: Common causes:
+1. Exit code non-zero at end of script:
+   ```bash
+   set -e  # Exit on any error
+   python -m anodyse ...
+   ```
+2. Check runner logs: `/var/log/gitlab-runner/system.log` on runner machine
+3. Verify runner is registered: `gitlab-runner status`
+
+---
+
+**Q: How do I mask sensitive variables in logs?**
+
+A: Use Protected Variables in Project Settings → CI/CD → Variables:
+1. Create variable (e.g., API_TOKEN)
+2. Enable "Protect variable"
+3. Variable value masked in job logs
+
+```yaml
+generate_docs:
+  script:
+    - echo $API_TOKEN  # Will show as **** in logs
+```
+
+---
+
+**Q: How do I run merge request pipelines?**
+
+A: Merge request pipelines run automatically when you create/update a MR:
+```yaml
+generate_docs:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+```
+
+**To allow merging without pipeline passing**:
+Project Settings → Merge requests → Pipelines must succeed: Toggle OFF
+
+---
+
+**Q: Can I run a job only when specific files change?**
+
+A: Yes, use `rules` with `changes`:
+```yaml
+generate_docs:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - playbooks/**/*
+        - templates/**/*
+      when: always
+    - when: never
+```
+
+---
+
+**Q: How do I retry a failed job?**
+
+A: Use `retry`:
+```yaml
+generate_docs:
+  script:
+    - python -m anodyse --input-path ./playbooks --output-path ./docs
+  retry:
+    max: 2
+    when:
+      - script_failure  # Only retry on script failures
+      - api_failure
+```
+
+---
+
+**Q: How do I parallelize multiple documentation generations?**
+
+A: Create separate jobs or use matrix strategy:
+```yaml
+generate_docs:
+  parallel:
+    matrix:
+      - TEMPLATE: standard
+        OUTPUT: docs-standard
+      - TEMPLATE: minimal
+        OUTPUT: docs-minimal
+  script:
+    - python -m anodyse \
+        --input-path ./playbooks \
+        --output-path ./$OUTPUT \
+        --template-dir ./templates/$TEMPLATE
+```
+
+---
+
+**Q: Where can I find more information?**
+
+A: See [gitlab-ci-reference.md](./gitlab-ci-reference.md) for comprehensive schema and examples.
+
 ---
 
 ## Generic CI Systems
