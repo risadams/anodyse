@@ -41,6 +41,7 @@ jobs:
       - name: Validate documentation can be generated
         id: validate
         run: |
+          set -e
           echo "Validating documentation generation..."
           mkdir -p /tmp/generated-docs
           
@@ -49,8 +50,11 @@ jobs:
           warning_count=0
           failed_samples=""
           
-          # Skip these special directories
-          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides")
+          # Skip these directories:
+          # - SAMPLE-OUTPUT: output examples, not playbooks
+          # - anodyse-template-overrides: custom templates, not playbooks
+          # - missing-comments: intentionally missing annotations (generates exit code 2)
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides" "missing-comments")
           
           for sample in samples/*/; do
             if [[ ! -d "$sample" ]]; then
@@ -69,15 +73,17 @@ jobs:
             done
             
             if [[ "$should_skip" == "true" ]]; then
-              echo "Skipping: $sample_name (special directory)"
+              echo "Skipping: $sample_name"
               continue
             fi
             
             sample_count=$((sample_count + 1))
             echo "Testing: $sample_name"
             
+            set +e
             anodyse "$sample" --output "/tmp/generated-docs" 2>/tmp/${sample_name}.log
             exit_code=$?
+            set -e
             
             if [[ $exit_code -eq 0 ]]; then
               success_count=$((success_count + 1))
@@ -88,8 +94,8 @@ jobs:
               success_count=$((success_count + 1))
               echo "  ⚠ Generated with warnings"
             else
-              echo "  ✗ Failed"
-              failed_samples="$failed_samples\n  - $sample_name (exit code: $exit_code)"
+              echo "  ✗ Failed (exit code: $exit_code)"
+              failed_samples="$failed_samples\n  - $sample_name"
             fi
           done
           

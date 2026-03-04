@@ -41,8 +41,11 @@ jobs:
           echo "Generating documentation from samples..."
           mkdir -p docs/samples
           
-          # Skip these special directories
-          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides")
+          # Skip these directories:
+          # - SAMPLE-OUTPUT: output examples, not playbooks
+          # - anodyse-template-overrides: custom templates, not playbooks  
+          # - missing-comments: intentionally missing annotations (generates exit code 2)
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides" "missing-comments")
           
           # Generate docs for each sample directory
           for sample in samples/*/; do

@@ -48,8 +48,11 @@ jobs:
           echo "Starting scheduled documentation regeneration..."
           mkdir -p docs/samples
           
-          # Skip these special directories
-          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides")
+          # Skip these directories:
+          # - SAMPLE-OUTPUT: output examples, not playbooks
+          # - anodyse-template-overrides: custom templates, not playbooks
+          # - missing-comments: intentionally missing annotations (generates exit code 2)
+          skip_dirs=("SAMPLE-OUTPUT" "anodyse-template-overrides" "missing-comments")
           
           generated_count=0
           failed_count=0
