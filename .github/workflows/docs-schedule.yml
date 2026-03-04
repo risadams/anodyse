@@ -57,17 +57,15 @@ jobs:
             fi
             
             sample_name=$(basename "$sample")
-            output_file="docs/samples/${sample_name}.md"
             
             if [[ "$VERBOSE" == "true" ]]; then
               echo "Processing: $sample_name"
             fi
             
-            if anodyse "$sample" \
-                --output "$output_file"; then
+            if anodyse "$sample" --output "docs/samples"; then
               generated_count=$((generated_count + 1))
               if [[ "$VERBOSE" == "true" ]]; then
-                echo "  ✓ Generated: $output_file"
+                echo "  ✓ Generated documentation for: $sample_name"
               fi
             else
               failed_count=$((failed_count + 1))
@@ -79,43 +77,25 @@ jobs:
           
           echo ""
           echo "Regeneration summary:"
-          echo "  Generated: $generated_count files"
-          echo "  Failed: $failed_count files"
+          echo "  Processed: $generated_count samples"
+          echo "  Failed: $failed_count samples"
           
           if [[ $failed_count -eq 0 ]]; then
             echo "✓ All documentation regenerated successfully"
           fi
       
-      - name: Update index with generation timestamp
+      - name: Verify generated documentation
         run: |
-          last_updated=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          echo "Verifying generated documentation..."
+          if [[ ! -f "docs/samples/index.md" ]]; then
+            echo "✗ Index file not generated"
+            exit 1
+          fi
           
-          cat > docs/samples/index.md << EOF
-          # Generated Sample Documentation
-          
-          > **Last Updated**: $last_updated
-          
-          This documentation is auto-generated every week from sample playbooks in the \`samples/\` directory.
-          
-          ## Sample Documentation
-          
-          EOF
-          
-          for sample in samples/*/; do
-            sample_name=$(basename "$sample")
-            if [[ -f "docs/samples/${sample_name}.md" ]]; then
-              echo "- [$sample_name](${sample_name}.md)" >> docs/samples/index.md
-            fi
-          done
-          
-          cat >> docs/samples/index.md << 'EOF'
-          
-          ## About This Feature
-          
-          These documents are generated using [Anodyse](https://github.com/example/anodyse) - an Ansible playbook documentation generator that automatically creates comprehensive markdown documentation from your infrastructure-as-code.
-          
-          **Learn more about CI/CD integration**: See [CI Integration Guide](../CI_INTEGRATION.md) to add Anodyse to your own workflows.
-          EOF
+          file_count=$(find docs/samples -type f | wc -l)
+          echo "✓ Generated $file_count documentation files"
+      
+      - name: Update index timestamp
       
       - name: Commit changes if any
         run: |
