@@ -9,12 +9,13 @@ Complete index of all CI/CD integration documentation for Anodyse.
 | **Quick start** | [Quickstart Guide](../specs/003-ci-workflow-setup/quickstart.md) | 5 min |
 | **GitHub Actions** | [GitHub Actions Reference](./github-actions-reference.md) | 20 min |
 | **GitLab CI/CD** | [GitLab CI Reference](./gitlab-ci-reference.md) | 20 min |
-| **Platform comparison** | [GitHub vs. GitLab](./PLATFORM_COMPARISON.md) | 10 min |
-| **Jenkins** | [Jenkins Integration Guide](./CI_INTEGRATION.md#generic-ci-patterns) | 30 min |
+| **Generic CI patterns** | [Generic CI Integration](./GENERIC_CI_INTEGRATION.md) | 20 min |
+| **Platform comparison** | [GitHub vs GitLab](./PLATFORM_COMPARISON.md) | 10 min |
+| **All platforms matrix** | [Platform Support Matrix](./CI_PLATFORM_SUPPORT.md) | 15 min |
 | **Publishing docs** | [Publishing Guide](./PUBLISHING.md) | 15 min |
 | **Environment setup** | [Environment Variables](./ENVIRONMENT_VARIABLES.md) | 10 min |
 | **Troubleshooting** | [Troubleshooting Guide](./TROUBLESHOOTING.md) | Variable |
-| **Contributing** | [Contributing Examples](./CI_EXAMPLES_CONTRIBUTING.md) | 20 min |
+| **Contributing** | [Contributing Examples](../CI_EXAMPLES_CONTRIBUTING.md) | 20 min |
 
 ---
 
@@ -130,6 +131,7 @@ docs/examples/
 ├── gitlab-ci-basic.yml              # Docker runner, artifact storage
 ├── gitlab-ci-with-gitlab-pages.yml  # Includes Pages deployment
 ├── gitlab-ci-shell-runner.yml       # For self-hosted runners
+├── gitlab-ci-all-triggers.yml       # All trigger types reference
 └── gitlab-ci-custom-templates.yml   # Custom template integration
 ```
 
@@ -137,12 +139,41 @@ docs/examples/
 
 ```
 docs/examples/
-├── scripts/generate-docs.sh         # Portable shell script
-├── jenkins/Jenkinsfile              # Declarative Pipeline
-├── woodpecker/.woodpecker.yml       # Woodpecker YAML
-├── circleci/config.yml              # CircleCI config
-└── travis/.travis.yml               # Travis CI config
+├── scripts/generate-docs.sh         # Portable shell script (all platforms)
+├── jenkins/Jenkinsfile              # Declarative Pipeline (500+ lines)
+├── woodpecker/.woodpecker.yml       # Woodpecker YAML (300+ lines)
+├── circleci/config.yml              # CircleCI config (200+ lines)
+└── travis/.travis.yml               # Travis CI config (150+ lines)
 ```
+
+---
+
+## Generic CI /Custom Platforms
+
+### When to Use Generic Patterns
+
+- Using Jenkins, Woodpecker, CircleCI, Travis CI, or other unsupported platform
+- Need portable solution that works on any CI with shell access
+- Custom or proprietary CI system
+- Want to understand core integration concepts
+
+### Key Resources
+
+| Document | Purpose |
+|----------|---------|
+| [GENERIC_CI_INTEGRATION.md](./GENERIC_CI_INTEGRATION.md) | Complete guide with platform adaptation patterns |
+| [CI_PLATFORM_SUPPORT.md](./CI_PLATFORM_SUPPORT.md) | Feature matrix for all supported platforms |
+| [generate-docs.sh](./examples/scripts/generate-docs.sh) | Portable shell script (no platform dependencies) |
+
+### Platform-Specific Guides
+
+| Platform | File | Setup | Difficulty |
+|----------|------|-------|-----------|
+| **Jenkins** | [Jenkinsfile](./examples/jenkins/Jenkinsfile) | 20 min | Intermediate |
+| **Woodpecker CI** | [.woodpecker.yml](./examples/woodpecker/.woodpecker.yml) | 15 min | Intermediate |
+| **CircleCI** | [config.yml](./examples/circleci/config.yml) | 15 min | Intermediate |
+| **Travis CI** | [.travis.yml](./examples/travis/.travis.yml) | 10 min | Beginner |
+| **Custom/Shell** | [generate-docs.sh](./examples/scripts/generate-docs.sh) | 15 min | Intermediate |
 
 ---
 

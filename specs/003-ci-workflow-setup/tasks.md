@@ -168,7 +168,7 @@
 
 ### US3 Tasks: Generic CI/CD Documentation & Examples
 
-- [ ] T301 [P] [US3] Create generic CI guide section in `docs/CI_INTEGRATION.md#generic-ci`:
+- [X] T301 [P] [US3] Create generic CI guide section in `docs/CI_INTEGRATION.md#generic-ci`:
   - CLI pattern overview
   - Environment variable conventions
   - Exit code semantics
@@ -176,46 +176,46 @@
   - Template mounting patterns
   - Error handling strategies
 
-- [ ] T302 [P] [US3] Create Jenkins integration example: `docs/examples/Jenkins/Jenkinsfile` (Declarative Pipeline)
+- [X] T302 [P] [US3] Create Jenkins integration example: `docs/examples/Jenkins/Jenkinsfile` (Declarative Pipeline)
   - Show pipeline structure with stages
   - Setup Python venv
   - Invoke anodyse
   - Archive artifacts
   - Error handling
 
-- [ ] T303 [P] [US3] Create Woodpecker CI example: `docs/examples/woodpecker/.woodpecker.yml`
+- [X] T303 [P] [US3] Create Woodpecker CI example: `docs/examples/woodpecker/.woodpecker.yml`
   - Show pipeline structure
   - Docker image setup
   - Anodyse invocation
   - Artifact handling
   - Multi-trigger support
 
-- [ ] T304 [P] [US3] Create CircleCI example: `docs/examples/circleci/config.yml`
+- [X] T304 [P] [US3] Create CircleCI example: `docs/examples/circleci/config.yml`
   - Show job structure
   - Docker image setup
   - Anodyse invocation
   - Artifact storage
   - Workflows and triggers
 
-- [ ] T305 [P] [US3] Create Travis CI example: `docs/examples/travis/.travis.yml`
+- [X] T305 [P] [US3] Create Travis CI example: `docs/examples/travis/.travis.yml`
   - Show build structure
   - Python setup
   - Anodyse invocation
   - Deploy configuration
 
-- [ ] T306 [P] [US3] Create generic shell script pattern: `docs/examples/scripts/generate-docs.sh`
+- [X] T306 [P] [US3] Create generic shell script pattern: `docs/examples/scripts/generate-docs.sh`
   - Portable across all CI systems
   - Environment variable handling
   - Error checking
   - Artifact staging
 
-- [ ] T307 [US3] Create generic CI integration guide: `docs/GENERIC_CI_INTEGRATION.md`
+- [X] T307 [US3] Create generic CI integration guide: `docs/GENERIC_CI_INTEGRATION.md`
   - When to use generic pattern vs. platform-specific
   - CLI patterns and best practices
   - Troubleshooting for custom CI systems
   - Extending integration to other platforms
 
-- [ ] T308 [US3] Create CI platform comparison matrix: `docs/CI_PLATFORM_SUPPORT.md`
+- [X] T308 [US3] Create CI platform comparison matrix: `docs/CI_PLATFORM_SUPPORT.md`
   - Supported platforms (P1: GitHub, GitLab; P3: Others)
   - Feature comparison (Docker support, secrets management, artifact handling)
   - Migration guide (how to adapt from one platform to another)

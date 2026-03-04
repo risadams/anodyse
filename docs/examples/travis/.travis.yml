@@ -1,0 +1,236 @@
+# Travis CI Configuration: Anodyse Documentation Generation
+#
+# Travis CI is a legacy but still functioning CI platform
+# Transitioning to "sustainable open source" model
+# Best for small projects and public repositories
+#
+# File location: .travis.yml in repository root
+#
+
+# ============================================================
+# Language and environment
+# ============================================================
+
+language: python
+
+# Python versions to test against
+python:
+  - "3.9"
+  - "3.11"
+
+# ============================================================
+# Environment variables
+# ============================================================
+
+env:
+  global:
+    - ANODYSE_INPUT_DIR=./playbooks
+    - ANODYSE_OUTPUT_DIR=./docs/generated
+    - ANODYSE_TEMPLATE_DIR=./templates
+
+# ============================================================
+# Installation
+# ============================================================
+
+install:
+  - echo "Installing Anodyse..."
+  - pip install --upgrade pip setuptools wheel
+  - pip install anodyse
+  - python -m anodyse --version
+
+# ============================================================
+# Script (tests / build)
+# ============================================================
+
+script:
+  # Verify input directory exists
+  - |
+    if [ ! -d "$ANODYSE_INPUT_DIR" ]; then
+      echo "ERROR: Input directory not found: $ANODYSE_INPUT_DIR"
+      exit 1
+    fi
+  
+  # Create output directory
+  - mkdir -p $ANODYSE_OUTPUT_DIR
+  
+  # Generate documentation
+  - |
+    python -m anodyse \
+      --input-path $ANODYSE_INPUT_DIR \
+      --output-path $ANODYSE_OUTPUT_DIR
+  
+  # Verify output
+  - |
+    if [ ! -f "$ANODYSE_OUTPUT_DIR/index.md" ]; then
+      echo "ERROR: index.md not generated"
+      exit 1
+    fi
+  
+  # Display generated files
+  - ls -lah $ANODYSE_OUTPUT_DIR/
+  - find $ANODYSE_OUTPUT_DIR -name "*.md" | wc -l
+
+# ============================================================
+# Branching and deployment
+# ============================================================
+
+branches:
+  only:
+    - main
+    - develop
+    - /^release\/.*$/
+
+# ============================================================
+# Deployment (optional)
+# ============================================================
+
+# Deploy to GitHub Pages
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  local_dir: $ANODYSE_OUTPUT_DIR
+  target_branch: gh-pages
+  on:
+    branch: main
+    python: "3.11"  # Only deploy once for latest Python version
+
+# ============================================================
+# Notifications
+# ============================================================
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+# ============================================================
+# Build cache
+# ============================================================
+
+cache: pip
+
+# ============================================================
+# CUSTOMIZATION GUIDE
+# ============================================================
+#
+# 1. CHANGE INPUT/OUTPUT PATHS:
+#    env:
+#      global:
+#        - ANODYSE_INPUT_DIR=./your-playbooks
+#        - ANODYSE_OUTPUT_DIR=./your-docs
+#
+# 2. TEST MULTIPLE PYTHON VERSIONS:
+#    python:
+#      - "3.9"
+#      - "3.10"
+#      - "3.11"
+#      - "3.12"
+#
+# 3. ADD CUSTOM TEMPLATES:
+#    env:
+#      global:
+#        - ANODYSE_TEMPLATE_DIR=./your-templates
+#    Then add in script:
+#      --template-dir $ANODYSE_TEMPLATE_DIR \
+#
+# 4. RUN ONLY ON SPECIFIC BRANCHES:
+#    branches:
+#      only:
+#        - main
+#        - /^release-.*$/
+#
+# 5. SKIP CI FOR SPECIFIC COMMITS:
+#    Add [skip ci] to commit message:
+#    git commit -m "docs: update README [skip ci]"
+#
+# 6. USE ENCRYPTED SECRETS:
+#    travis encrypt GITHUB_TOKEN=xxx --add env.global
+#    This creates encrypted env variable in .travis.yml
+#
+# 7. DEPLOY TO MULTIPLE PLATFORMS:
+#    deploy:
+#      - provider: pages
+#        on: { branch: main, python: '3.11' }
+#      - provider: s3
+#        access_key_id: $AWS_ACCESS_KEY_ID
+#        secret_access_key: $AWS_SECRET_ACCESS_KEY
+#        bucket: my-documentation
+#        on: { branch: main, python: '3.11' }
+#
+# 8. CONDITIONAL DEPLOYMENT:
+#    deploy:
+#      on:
+#        branch: main
+#        python: "3.11"
+#        # Only deploy on tags
+#        tags: true
+#
+# 9. BEFORE/AFTER HOOKS:
+#    before_install:
+#      - echo "Pre-installation steps"
+#    
+#    before_script:
+#      - echo "Pre-script steps"
+#    
+#    after_success:
+#      - echo "Post-success steps"
+#      - ./publish-docs.sh
+#    
+#    after_failure:
+#      - echo "Build failed - debug info:"
+#      - ls -la $ANODYSE_OUTPUT_DIR/
+#
+# 10. SETUP IN TRAVIS CI:
+#     1. Go to https://travis-ci.com
+#     2. Sign in with GitHub
+#     3. Authorize Travis
+#     4. Find your repository
+#     5. Enable it with toggle switch
+#     6. Add .travis.yml to repository
+#     7. Push to trigger build
+#
+# ============================================================
+# TRAVIS CI STATUS & FUTURE
+# ============================================================
+#
+# Current Status (as of 2026):
+# - Legacy platform, transitioning to sustainable model
+# - Free public repository support
+# - Building migration path for PRs
+# - Largely replaced by GitHub Actions for GitHub projects
+#
+# Recommendation:
+# - For GitHub projects: Use GitHub Actions instead
+# - For legacy projects: Travis CI still works
+# - For new projects: Choose GitHub Actions or GitLab CI
+#
+# Why consider Travis CI:
+# - Mature and stable platform
+# - Good multi-language support
+# - Simple .travis.yml syntax
+# - Excellent documentation
+# - Good for open-source projects
+#
+# Why avoid for new projects:
+# - Declining development activity
+# - GitHub Actions now native to GitHub
+# - GitLab CI better for GitLab projects
+# - Woodpecker/CircleCI better alternatives
+#
+# ============================================================
+# PRICING
+# ============================================================
+#
+# Travis CI Free Tier:
+# - Unlimited builds (subject to fair use)
+# - Public repositories only
+# - Concurrent builds: 1 (free tier)
+# - Build logs: Kept for 1 month
+#
+# Estimate for Anodyse:
+# - Small playbook (~20 files): 2-3 minutes
+# - Medium playbook (~100 files): 5-10 minutes
+# - Large playbook (~500+ files): 15-20 minutes
+#
+# ============================================================

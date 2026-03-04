@@ -642,66 +642,177 @@ See [TROUBLESHOOTING.md#gitlab-cicd](./TROUBLESHOOTING.md#gitlab-cicd) for detai
 
 Use Anodyse with any CI system that supports shell script execution: Jenkins, Woodpecker, CircleCI, Travis CI, and others.
 
+### All-in-One Portable Shell Script
+
+We provide a complete shell script that works on every CI platform:
+
+**[generate-docs.sh](./examples/scripts/generate-docs.sh)** (300+ lines)
+- Automatic Python environment setup with venv
+- Pre-flight checks (Python version, input directory, files)
+- Comprehensive logging (info, debug, error levels)
+- Error handling and validation
+- Cross-platform compatibility (Linux, macOS, Windows WSL)
+- Optional cleanup
+
+```bash
+# Download and use
+curl -o scripts/generate-docs.sh \
+  https://raw.githubusercontent.com/acuity-inc/anodyse/main/docs/examples/scripts/generate-docs.sh
+chmod +x scripts/generate-docs.sh
+
+# Run with defaults or custom environment
+INPUT_DIR=./playbooks \
+OUTPUT_DIR=./docs \
+VERBOSE=true \
+./scripts/generate-docs.sh
+```
+
 ### Portable Shell Pattern
 
-All CI systems can execute this shell script pattern:
+The minimal pattern that works on any CI system:
 
 ```bash
 #!/bin/bash
 set -e
 
-# Configuration
-INPUT_DIR="${INPUT_DIR:=./playbooks}"
-OUTPUT_DIR="${OUTPUT_DIR:=./docs}"
-TEMPLATE_DIR="${TEMPLATE_DIR:=./templates}"
+# Setup
+python3 -m venv /tmp/anodyse_venv
+source /tmp/anodyse_venv/bin/activate
 
-# Setup Python environment
-python3 -m venv /tmp/anodyse
-source /tmp/anodyse/bin/activate
-
-# Install and run Anodyse
+# Install and run
 pip install --upgrade pip
 pip install anodyse
 
-# Generate documentation
+# Generate
 python -m anodyse \
-  --input-path "$INPUT_DIR" \
-  --output-path "$OUTPUT_DIR" \
-  --template-dir "$TEMPLATE_DIR"
+  --input-path ./playbooks \
+  --output-path ./docs
 
-# Verify output
-if [ ! -f "$OUTPUT_DIR/index.md" ]; then
-  echo "ERROR: Generated documentation missing index.md"
+# Verify
+if [ ! -f "./docs/index.md" ]; then
+  echo "ERROR: Documentation generation failed"
   exit 1
 fi
 
-echo "Documentation generated successfully in $OUTPUT_DIR"
+echo "SUCCESS: Documentation generated"
 ```
+
+### Core CLI Pattern
+
+At the heart of every integration:
+
+```bash
+python -m anodyse \
+  --input-path ./playbooks \
+  --output-path ./docs \
+  --template-dir ./templates \
+  --verbose
+```
+
+**Exit Codes**:
+- `0`: Success
+- `1`: Failure (check logs for details)
+- `2`: Configuration error
 
 ### Jenkins Integration
 
-See [Jenkins Integration Example](../examples/jenkins/Jenkinsfile) for complete Declarative Pipeline example.
+[Complete Jenkinsfile Example](./examples/jenkins/Jenkinsfile) (500+ lines)
+
+**Features**:
+- Declarative Pipeline format
+- 6 stages: Setup, Prepare, Install, Generate, Verify, Archive
+- Environment variables configuration
+- Virtual environment management
+- Comprehensive error handling
+- Customization guide with 10+ patterns
+
+**Quick Start**:
+```bash
+cp docs/examples/jenkins/Jenkinsfile ./Jenkinsfile
+# Edit ANODYSE_INPUT_DIR and ANODYSE_OUTPUT_DIR variables
+# Create Jenkins pipeline job pointed to your repository
+```
 
 ### Woodpecker CI Integration
 
-See [Woodpecker Integration Example](../examples/woodpecker/.woodpecker.yml) for complete example.
+[Complete Woodpecker Configuration](./examples/woodpecker/.woodpecker.yml) (300+ lines)
+
+**Features**:
+- Docker-based pipeline
+- Sequential steps (similar to GitLab)
+- Trigger configuration (push, PR, schedule)
+- Environment variables
+- Volume management
+
+**Quick Start**:
+```bash
+cp docs/examples/woodpecker/.woodpecker.yml ./
+# Enable repository in Woodpecker cloud or self-hosted
+git push to trigger
+```
 
 ### CircleCI Integration
 
-See [CircleCI Integration Example](../examples/circleci/config.yml) for complete example.
+[Complete CircleCI Configuration](./examples/circleci/config.yml) (200+ lines)
+
+**Features**:
+- Config 2.1 version (modern)
+- Docker image specification
+- Workflows with scheduling
+- Artifact storage
+- Multi-version matrix strategy
+
+**Quick Start**:
+```bash
+mkdir -p .circleci
+cp docs/examples/circleci/config.yml .circleci/
+# CircleCI auto-detects and runs on next commit
+```
 
 ### Travis CI Integration
 
-See [Travis CI Integration Example](../examples/travis/.travis.yml) for complete example.
+[Complete Travis Configuration](./examples/travis/.travis.yml) (150+ lines)
+
+**Status**: ⚠️ **Legacy Platform** - New projects should use GitHub Actions instead
+
+**See Also**: [Travis CI is being transitioned to sustainable model](https://www.travis-ci.com/blog/2022-01-31-travis-ci-new-billing)
 
 ### Platform-Specific Guidance
 
-| Platform | Runner | Setup | Notes |
-|----------|--------|-------|-------|
-| **Jenkins** | Any | Declarative Pipeline or groovy script | Requires Python 3.9+ installed |
-| **Woodpecker** | Docker/Kubernetes | `.woodpecker.yml` | Docker container easier than shell |
-| **CircleCI** | Docker | `config.yml` | Free tier includes 6000 minutes/month |
-| **Travis CI** | Docker | `.travis.yml` | Legacy platform, moving to sustainable model |
+| Platform | Runner | Setup | Difficulty | Notes |
+|----------|--------|-------|------------|-------|
+| **Jenkins** | Any | 20 min | Intermediate | Enterprise standard, widely deployed |
+| **Woodpecker** | Docker/Shell | 15 min | Intermediate | Modern, container-first, active development |
+| **CircleCI** | Docker | 15 min | Intermediate | Free tier generous, great UI |
+| **Travis CI** | Docker | 10 min | Beginner | Legacy, not recommended for new projects |
+
+### Best Practices for All Platforms
+
+1. **Check Python version early**:
+   ```bash
+   python3 --version  # Must be 3.9+
+   ```
+
+2. **Use virtual environments** (isolate dependencies):
+   ```bash
+   python3 -m venv /tmp/anodyse_venv
+   source /tmp/anodyse_venv/bin/activate
+   ```
+
+3. **Verify generated output**:
+   ```bash
+   test -f ./docs/index.md || (echo "ERROR: No docs"; exit 1)
+   ```
+
+4. **Log key information**:
+   ```bash
+   echo "Input: $INPUT_DIR, Output: $OUTPUT_DIR"
+   ```
+
+### See Also
+
+- [Generic CI Integration Guide](./GENERIC_CI_INTEGRATION.md) - Custom platform patterns and best practices
+- [CI Platform Support Matrix](./CI_PLATFORM_SUPPORT.md) - Complete feature comparison
 
 ---
 
@@ -711,7 +822,8 @@ See [Travis CI Integration Example](../examples/travis/.travis.yml) for complete
 
 1. **GitHub Actions**: Actions tab → Workflow run → Job → Step logs
 2. **GitLab CI**: CI/CD → Pipelines → Pipeline → Job logs
-3. **Other platforms**: Check your CI system's log viewer
+3. **Jenkins**: Project → Build history → Build → Console output
+4. **Other platforms**: Check your CI system's log viewer
 
 ### Common Issues
 
