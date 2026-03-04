@@ -64,10 +64,7 @@ jobs:
             
             echo "Testing: $sample_name"
             
-            if anodyse \
-                --input "$sample" \
-                --output "/tmp/generated-docs/${sample_name}.md" \
-                --title "Sample: $sample_name" 2>/tmp/${sample_name}.log; then
+            if anodyse "$sample" --output "/tmp/generated-docs/${sample_name}" 2>/tmp/${sample_name}.log; then
               success_count=$((success_count + 1))
               echo "  ✓ Success"
             else
