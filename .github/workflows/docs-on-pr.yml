@@ -127,7 +127,7 @@ jobs:
             
             const comment = `${emoji} **Documentation validation**: ${outcome}
             
-            This PR ${{ steps.validate.outcome === 'success' && 'passes' || 'does not pass' }} documentation generation.
+            This PR ${{ steps.validate.outcome == 'success' && 'passes' || 'does not pass' }} documentation generation.
             
             See the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`;
             
