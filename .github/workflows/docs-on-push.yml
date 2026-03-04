@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'samples/**'
-      - 'anodyse/**'
-      - '.github/workflows/docs-on-push.yml'
-      - 'pyproject.toml'
 
 permissions:
   contents: write
@@ -46,29 +41,47 @@ jobs:
           echo "Generating documentation from samples..."
           mkdir -p docs/samples
           
-          # Generate docs for each sample playbook
+          # Generate docs for each sample directory
           for sample in samples/*/; do
+            # Skip if not a directory
+            if [[ ! -d "$sample" ]]; then
+              continue
+            fi
+            
             sample_name=$(basename "$sample")
             echo "Processing: $sample_name"
-            if [[ -f "$sample/README.md" ]]; then
-              anodyse "$sample" --output "docs/samples" \
-                || echo "Warning: Failed to process $sample_name"
+            
+            # Skip special directories
+            if [[ "$sample_name" == "SAMPLE-OUTPUT" ]]; then
+              continue
             fi
+            
+            # Run anodyse on the sample (works with directories or playbook files)
+            anodyse "$sample" --output "docs/samples" 2>/dev/null || \
+              echo "  ⚠ Warning: Could not process $sample_name"
           done
           
-          echo "✓ Documentation generated successfully"
+          echo "✓ Documentation generated"
       
       - name: Generate index of all samples
+        if: success()
         run: |
           echo "# Generated Sample Documentation" > docs/samples/index.md
           echo "" >> docs/samples/index.md
           echo "Auto-generated from sample playbooks every commit." >> docs/samples/index.md
           echo "" >> docs/samples/index.md
-          echo "## Samples" >> docs/samples/index.md
+          echo "## Sample Documentation" >> docs/samples/index.md
+          echo "" >> docs/samples/index.md
           
-          for sample in samples/*/; do
-            sample_name=$(basename "$sample")
-            echo "- [$sample_name](${sample_name}.md)" >> docs/samples/index.md
+          # Find all generated .md files (except index.md itself)
+          for doc in docs/samples/*.md; do
+            filename=$(basename "$doc")
+            if [[ "$filename" != "index.md" ]]; then
+              # Convert filename to title (remove .md, replace hyphens with spaces)
+              title="${filename%.md}"
+              title="${title//-/ }"
+              echo "- [$title]($filename)" >> docs/samples/index.md
+            fi
           done
       
       - name: Verify generated docs

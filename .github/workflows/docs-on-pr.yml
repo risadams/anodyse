@@ -4,11 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'samples/**'
-      - 'anodyse/**'
-      - '.github/workflows/docs-on-pr.yml'
-      - 'pyproject.toml'
 
 permissions:
   contents: read
@@ -113,20 +108,16 @@ jobs:
           cat /tmp/validation-report.md
       
       - name: Comment PR with results
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
             const outcome = '${{ steps.validate.outcome }}';
             const emoji = outcome === 'success' ? '✅' : '❌';
+            const status = outcome === 'success' ? 'passes' : 'does not pass';
             
-            const comment = `${emoji} **Documentation validation**: ${outcome}
-            
-            This PR ${{ steps.validate.outcome == 'success' && 'passes' || 'does not pass' }} documentation generation.
-            
-            See the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`;
+            const comment = `${emoji} **Documentation validation**: ${outcome}\n\nThis PR ${status} documentation generation.\n\nSee the [workflow run](https://github.com/${ context.repo.owner }/${ context.repo.repo }/actions/runs/${{ github.run_id }}) for details.`;
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
