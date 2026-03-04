@@ -321,32 +321,32 @@
 
 ### Testing & Validation
 
-- [ ] T601 Validate all example workflows (GitHub, GitLab) can be copied and run without modification
+- [X] T601 Validate all example workflows (GitHub, GitLab) can be copied and run without modification
   - Test with sample playbooks
   - Confirm artifacts generated
   - Verify no errors in logs
 
-- [ ] T602 Validate all shell scripts run on multiple OS (Linux, macOS, Windows WSL)
+- [X] T602 Validate all shell scripts run on multiple OS (Linux, macOS, Windows WSL)
   - Verify portability
   - Document any platform-specific steps
 
-- [ ] T603 [P] Validate all code blocks in documentation are current and accurate
+- [X] T603 [P] Validate all code blocks in documentation are current and accurate
   - YAML syntax validation
   - Shell script syntax check
   - File paths exist
 
-- [ ] T604 [P] Validate all cross-references and links in documentation
+- [X] T604 [P] Validate all cross-references and links in documentation
   - Internal links (docs → docs)
   - External links (GitHub, GitLab, etc.)
   - Line anchors (#sections)
 
-- [ ] T605 Perform user acceptance test (UAT): Have non-Anodyse developer follow each guide
+- [X] T605 Perform user acceptance test (UAT): Have non-Anodyse developer follow each guide
   - GitHub Actions guide (30 minutes)
   - GitLab CI guide (30 minutes)
   - Generic pattern guide (45 minutes)
   - Document clarity issues and update docs
 
-- [ ] T606 Test error scenarios and validate error messages
+- [X] T606 Test error scenarios and validate error messages
   - Missing input directory
   - Invalid YAML in playbooks
   - Timeout scenarios
