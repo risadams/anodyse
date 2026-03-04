@@ -40,13 +40,10 @@ generate_with_local_templates:
   
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - templates/**/*
+        - playbooks/**/*
       when: always
-  
-  # Only run if templates files changed
-  only:
-    changes:
-      - templates/**/*
-      - playbooks/**/*
 
 # ============================================================
 # Job 2: Download Templates from External Source

@@ -146,13 +146,6 @@ pipeline {
 
 ```yaml
 pipeline:
-  setup:
-    image: python:3.11
-    commands:
-      - python -m venv venv
-      - . venv/bin/activate
-      - pip install anodyse
-  
   generate:
     image: python:3.11
     environment:
@@ -160,14 +153,9 @@ pipeline:
       - ANODYSE_OUTPUT_DIR=docs/generated
       - ANODYSE_TEMPLATE_DIR=templates/custom
     commands:
-      - . venv/bin/activate
+      - pip install anodyse
       - mkdir -p $ANODYSE_OUTPUT_DIR
-      - python -m anodyse render 
-          --input $ANODYSE_INPUT_DIR 
-          --output $ANODYSE_OUTPUT_DIR 
-          --recursive 
-          --index 
-          --fail-on-error
+      - python -m anodyse $ANODYSE_INPUT_DIR --output $ANODYSE_OUTPUT_DIR
   
   publish:
     image: alpine:latest

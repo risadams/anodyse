@@ -16,7 +16,7 @@ language: python
 # Python versions to test against
 python:
   - "3.11"
-  - "3.11"
+  - "3.12"
 
 # ============================================================
 # Environment variables

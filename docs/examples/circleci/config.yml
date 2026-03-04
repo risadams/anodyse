@@ -71,7 +71,7 @@ jobs:
             echo "Generating documentation..."
             mkdir -p $ANODYSE_OUTPUT_DIR
             
-            python -m anoryse \
+            python -m anodyse \
               --input-path $ANODYSE_INPUT_DIR \
               --output-path $ANODYSE_OUTPUT_DIR
             

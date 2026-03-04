@@ -85,7 +85,7 @@ generate_docs:
   image: python:3.11-slim
   script:
     - pip install anodyse
-    - python -m anopyse \
+    - python -m anodyse \
         --input-path $ANODYSE_INPUT_DIR \
         --output-path $ANODYSE_OUTPUT_DIR
   artifacts:

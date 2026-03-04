@@ -92,7 +92,7 @@ check_command pip || exit 1
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 log_info "  Python version: $PYTHON_VERSION"
 
-if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'; then
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'; then
     log_error "Python 3.11+ required (found $PYTHON_VERSION)"
     exit 1
 fi
@@ -172,19 +172,19 @@ log_debug "Output directory ready: $OUTPUT_DIR"
 log_info ""
 log_info "Generating documentation..."
 
-ANODYSE_ARGS="--input-path \"$INPUT_DIR\" --output-path \"$OUTPUT_DIR\""
+ANODYSE_ARGS=("$INPUT_DIR" "--output" "$OUTPUT_DIR")
 
 if [ -n "$TEMPLATE_DIR" ]; then
-    ANODYSE_ARGS="$ANODYSE_ARGS --template-dir \"$TEMPLATE_DIR\""
+    log_info "WARNING: TEMPLATE_DIR is set but current Anodyse CLI does not support --template-dir; proceeding without it"
 fi
 
 if [ "$VERBOSE" = "true" ] || [ "$VERBOSE" = "1" ]; then
-    ANODYSE_ARGS="$ANODYSE_ARGS --verbose"
+    ANODYSE_ARGS+=("--verbose")
 fi
 
-log_debug "Anodyse command: python -m anodyse $ANODYSE_ARGS"
+log_debug "Anodyse command: python -m anodyse ${ANODYSE_ARGS[*]}"
 
-if eval "python -m anodyse $ANODYSE_ARGS"; then
+if python -m anodyse "${ANODYSE_ARGS[@]}"; then
     log_info "Documentation generation completed successfully"
 else
     log_error "Documentation generation failed"

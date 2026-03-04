@@ -91,8 +91,6 @@ pages:
   tags:
     - shell
   
-  image: alpine:latest  # Use Docker for this job if available
-  
   script:
     - mkdir -p $PAGES_OUTPUT_DIR
     - cp -r $ANODYSE_OUTPUT_DIR/* $PAGES_OUTPUT_DIR/ || true
@@ -189,7 +187,7 @@ cleanup:
 #    - Use .gitlab-ci.yml cache section:
 #      cache:
 #        paths:
-#          - $ANOPYSE_VENV
+#          - $ANODYSE_VENV
 #    - Schedule heavy jobs during off-peak hours
 #
 # 8. SECURITY BEST PRACTICES

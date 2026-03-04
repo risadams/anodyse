@@ -38,6 +38,7 @@ jobs:
       
       - name: Generate docs from samples
         run: |
+          set -e
           echo "Generating documentation from samples..."
           mkdir -p docs/samples
           
@@ -71,8 +72,7 @@ jobs:
             fi
             
             echo "Processing: $sample_name"
-            anodyse "$sample" --output "docs/samples" 2>/dev/null || \
-              echo "  ⚠ Warning: Could not process $sample_name"
+            anodyse "$sample" --output "docs/samples"
           done
           
           echo "✓ Documentation generated"

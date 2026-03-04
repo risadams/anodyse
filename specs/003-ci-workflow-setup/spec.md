@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-ci-workflow-setup`  
 **Created**: March 4, 2026  
-**Status**: Draft  
+**Status**: Completed  
 **Input**: User description: "Add CI workflow integration guide showing how end users can use Anodyse within their own CI/CD pipelines for documentation automation. Support GitHub Actions, GitLab Runners, and generic CI systems with setup examples. The anodyse repository will dogfood this using GitHub Actions with our sample playbooks."
 
 ## User Scenarios & Testing *(mandatory)*

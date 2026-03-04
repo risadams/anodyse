@@ -276,7 +276,7 @@ pipeline {
 //    ANODYSE_OUTPUT_DIR = './your-docs'
 //
 // 2. ADD CUSTOM TEMPLATES:
-//    ANOPYSE_TEMPLATE_DIR = './your-templates'
+//    ANODYSE_TEMPLATE_DIR = './your-templates'
 //    Then add --template-dir in Generate stage
 //
 // 3. TRIGGER ON SPECIFIC BRANCHES:
@@ -331,12 +331,12 @@ pipeline {
 //        parallel {
 //            stage('Python 3.11') {
 //                steps {
-//                    sh 'python3.11 -m anodyse ...'"
+//                    sh 'python3.11 -m anodyse ...'
 //                }
 //            }
-//            stage('Python 3.11') {
+//            stage('Python 3.12') {
 //                steps {
-//                    sh 'python3.11 -m anodyse ...'
+//                    sh 'python3.12 -m anodyse ...'
 //                }
 //            }
 //        }

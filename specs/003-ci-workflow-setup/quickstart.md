@@ -326,7 +326,7 @@ only:
 
 ## Troubleshooting
 
-### "Anonyse not found"
+### "Anodyse not found"
 
 **Cause**: Anodyse not installed  
 **Fix**: Ensure `pip install anodyse` runs before anodyse command

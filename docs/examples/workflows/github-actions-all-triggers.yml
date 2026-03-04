@@ -9,6 +9,8 @@ on:
       - main              # Main branch
       - develop           # Development branch
       - 'release/**'      # Release branches (release/v1.0, etc.)
+    tags:
+      - 'v*'              # v1.0, v1.1.2, etc.
     # Only run if these files/directories change
     paths:
       - 'playbooks/**'
@@ -23,11 +25,6 @@ on:
     paths:
       - 'playbooks/**'
       - 'roles/**'
-  
-  # Trigger on version tags
-  push:
-    tags:
-      - 'v*'              # v1.0, v1.1.2, etc.
   
   # Scheduled trigger (uses GitHub Actions cron format)
   schedule:
@@ -78,7 +75,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'

@@ -117,8 +117,6 @@ jobs:
           file_count=$(find docs/samples -type f | wc -l)
           echo "✓ Generated $file_count documentation files"
       
-      - name: Update index timestamp
-      
       - name: Commit changes if any
         run: |
           git config user.name "github-actions[bot]"
@@ -147,6 +145,8 @@ jobs:
       - name: Create workflow summary
         if: always()
         run: |
+          status="${{ job.status }}"
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           cat >> $GITHUB_STEP_SUMMARY << 'EOF'
           ## 📄 Scheduled Documentation Regeneration
           
@@ -179,6 +179,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: '❌ Scheduled docs regeneration failed',
-              body: 'The scheduled documentation regeneration job failed.\n\nSee [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.',
+              body: `The scheduled documentation regeneration job failed.\n\nSee [workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
               labels: ['bug', 'documentation']
             });

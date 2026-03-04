@@ -33,24 +33,13 @@ generate-docs:
     - pip install anodyse
   script:
     - mkdir -p $ANODYSE_OUTPUT_DIR
-    - python -m anodyse render 
-        --input $ANODYSE_INPUT_DIR 
-        --output $ANODYSE_OUTPUT_DIR 
-        --template $ANODYSE_TEMPLATE_DIR 
-        --recursive 
-        --index 
-        --fail-on-error
+    - python -m anodyse $ANODYSE_INPUT_DIR --output $ANODYSE_OUTPUT_DIR
   artifacts:
     paths:
       - $ANODYSE_OUTPUT_DIR/
     expire_in: 1 month
     reports:
       dotenv: build.env
-  only:
-    - push
-    - merge_request
-    - schedules
-    - web
   rules:
     # Run on push to main
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == 'push'
@@ -65,7 +54,7 @@ pages:
   stage: deploy
   image: alpine:latest
   before_script:
-    - apk add --no-cache openssh-keys
+    - apk add --no-cache openssh-client
   script:
     - mkdir -p public
     - cp -r docs/generated/* public/ || true
@@ -92,14 +81,9 @@ generate-docs:
   script:
     - python3 -m venv venv
     - source venv/bin/activate
-    - pip install anonyse
+    - pip install anodyse
     - mkdir -p $ANODYSE_OUTPUT_DIR
-    - python -m anodyse render 
-        --input $ANODYSE_INPUT_DIR 
-        --output $ANODYSE_OUTPUT_DIR 
-        --recursive 
-        --index 
-        --fail-on-error
+    - python -m anodyse $ANODYSE_INPUT_DIR --output $ANODYSE_OUTPUT_DIR
   artifacts:
     paths:
       - $ANODYSE_OUTPUT_DIR/

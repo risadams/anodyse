@@ -1,6 +1,6 @@
 # CI Platform Support Matrix
 
-# Comprehensive comparison of all supported CI/CD platforms for Anodyse integration.
+Comprehensive comparison of all supported CI/CD platforms for Anodyse integration.
 
 ---
 
@@ -37,7 +37,7 @@
 
 ---
 
-## Cost Comparison (Typical Anonyse Usage)
+## Cost Comparison (Typical Anodyse Usage)
 
 Based on 2 documentation generations per week (small projects):
 
